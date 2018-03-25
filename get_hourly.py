@@ -1,41 +1,213 @@
 import pandas as pd
 import datetime as dt
+import urllib as ul
+import pyhdf.SD as hdf
+import os
 
 class DataFetcher:
+
+    laadsurl = "https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/6/MOD06_L2/"
+
     def __init__(self):
         directory_file = open("data_directory.txt","r")
-        self.data_path = directory_file.read()
+        self.data_path = directory_file.read()[:-1]
+        self.update_datetime()
 
-    def get_latest_filenames_url(self, year, day):
-        year = str(year)
+    def __set_year(self):
+        self.year = str(dt.datetime.today().year)
 
-        if day < 99:
-            day = "0" + str(day)
+    def __set_day(self):
+        day_int = dt.datetime.now().timetuple().tm_yday
+
+        if day_int < 100:
+            self.day = "0" + str(day_int)
         else:
-            day = str(day)
+            self.day = str(day_int)
 
-        filenames_url = "https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/6/MOD06_L2/" + year + "/" + day + ".csv"
+    def __set_hour(self):
+        hour_int = dt.datetime.today().hour
+
+        if hour_int < 10:
+            self.hour = "0" + str(hour_int)
+        else:
+            self.hour = str(hour_int)
+
+    def update_datetime(self):
+        self.__set_year()
+        self.__set_day()
+        self.__set_hour()
+
+    def get_latest_filenames_url(self):
+        filenames_url = self.laadsurl + self.year + "/" + self.day + ".csv"
         return filenames_url
-        #filenames = pd.read_csv(filenames_url)
 
-    def get_latest_filenames(self, latest_filenames_url):
+    def get_latest_filenames(self):
+        latest_filenames_url = self.get_latest_filenames_url()
         try:
             return pd.read_csv(latest_filenames_url)
         except:
-            #TODO: log failure to read new file
+            #TODO: log failure to read file csv
             return pd.DataFrame({'A' : []})
 
+    def get_latest_file_url(self):
+        latest_file_name = self.get_latest_filenames().iloc[-1]["name"]
+        latest_file_url = self.laadsurl + self.year + "/" + self.day + "/" + latest_file_name
+        return latest_file_url
 
-x = DataFetcher()
+    def download_latest_file(self):
+        try:
+            latest_file_url = self.get_latest_file_url()
+            path_to_write = self.data_path + self.year + self.day + self.hour + ".hdf"
+            ul.request.urlretrieve(latest_file_url, path_to_write)
+            self.latest_file_path = path_to_write
+            return True
+        except:
+            #TODO: log failure to download latest data file
+            return False
 
-year = dt.datetime.today().year
-day = dt.datetime.today().day
-
-latest_filenames_url = x.get_latest_filenames_url(year, day)
-
-print(latest_filenames_url)
-pd.read_csv(latest_filenames_url)
 
 
-latest_filenames = x.get_latest_filenames(latest_filenames_url)
-latest_filenames.head()
+
+class SwathTile:
+    def __init__(self, bounding_box, file_path, timestamp):
+         self.bounding_box = bounding_box
+         self.file_path = file_path
+         self.timestamp = timestamp
+
+class BoundingBox:
+
+    def __init__(self, corner_1, corner_2, corner_3, corner_4):
+        self.corners = []
+        self.corners.append(corner_1)
+        self.corners.append(corner_2)
+        self.corners.append(corner_3)
+        self.corners.append(corner_4)
+
+    def print_geometries(self):
+        for corner in self.corners:
+            print(*list(corner.values()))
+
+
+#Data management logic
+swath_tile_list = []
+
+def get_bounding_box(latitude_dataframe, longitude_dataframe):
+    corner_1 = {'lat': latitude_dataframe.iloc[0,0], 'long': longitude_dataframe.iloc[0,0]}
+    corner_2 = {'lat': latitude_dataframe.iloc[0,-1], 'long': longitude_dataframe.iloc[0,-1]}
+    corner_3 = {'lat': latitude_dataframe.iloc[-1,0], 'long': longitude_dataframe.iloc[-1,0]}
+    corner_4 = {'lat': latitude_dataframe.iloc[-1,-1], 'long': longitude_dataframe.iloc[-1,-1]}
+    bounding_box = BoundingBox(corner_1, corner_2, corner_3, corner_4)
+    return bounding_box
+
+def build_swath_tile(file_path):
+    data_file = hdf.SD(file_path, hdf.SDC.READ)
+    lat_data = pd.DataFrame(data_file.select('Latitude').get())
+    long_data = pd.DataFrame(data_file.select('Longitude').get())
+    bounding_box = get_bounding_box(lat_data,long_data)
+    swath_tile = SwathTile(bounding_box, file_path, dt.datetime.now())
+    swath_tile_list.append(swath_tile)
+
+#End data management logic
+
+
+#class SwathTileExporter:
+#    def get_data(self, bounding_box, data_type):
+#        for geom in manager.swath_tile_list:
+
+
+
+def bounding_box_within_swath(swath_box, select_box):
+
+    match_1 = False
+    match_2 = False
+    match_3 = False
+    match_4 = False
+
+    if point_east_of_bound(swath_box.corners[0]['long'], select_box.corners[0]['long']):
+        if point_south_of_bound(swath_box.corners[0]['lat'], select_box.corners[0]['lat']):
+            match_1 = True
+
+    if point_west_of_bound(swath_box.corners[1]['long'], select_box.corners[1]['long']):
+        if point_south_of_bound(swath_box.corners[1]['lat'], select_box.corners[1]['lat']):
+            match_2 = True
+
+    if point_east_of_bound(swath_box.corners[2]['long'], select_box.corners[2]['long']):
+        if point_north_of_bound(swath_box.corners[2]['lat'], select_box.corners[2]['lat']):
+            match_3 = True
+
+    if point_west_of_bound(swath_box.corners[3]['long'], select_box.corners[3]['long']):
+        if point_north_of_bound(swath_box.corners[3]['lat'], select_box.corners[3]['lat']):
+            match_4 = True
+
+    if match_1 and match_2 and match_3 and match_4:
+        return True
+
+    return False
+
+
+def point_east_of_bound(swath_long, select_long):
+    if select_long > 90 and swath_long < -90:
+        swath_long = swath_long + 180
+        select_long = select_long - 180
+        if swath_long < select_long:
+            return True
+    else:
+        if swath_long < select_long:
+            return True
+
+    return False
+
+def point_west_of_bound(swath_long, select_long):
+    if select_long > 90 and swath_long < -90:
+        swath_long = swath_long + 180
+        select_long = select_long - 180
+        if swath_long > select_long:
+            return True
+    else:
+        if swath_long > select_long:
+            return True
+
+    return False
+
+
+def point_north_of_bound(swath_lat, select_lat):
+    if swath_lat < select_lat:
+        return True
+    return False
+
+def point_south_of_bound(swath_lat, select_lat):
+     if swath_lat > select_lat:
+        return True
+     return False
+
+
+#manager = DataManager()
+#x = DataFetcher()
+directory = os.fsencode("/media/joe/DATA/weather_data/test/")
+
+for file in os.listdir(directory):
+    filename = os.fsdecode(directory) + os.fsdecode(file)
+    build_swath_tile(filename)
+
+
+test_box = BoundingBox({'lat':-34,'long':145},{'lat':-34,'long':148},{'lat':-38,'long':145},{'lat':-38,'long':149})
+
+#print(point_south_of_bound(20,0)) #True
+#print(point_west_of_bound(20,0)) #True
+
+
+
+#for swath in swath_tile_list:
+#    if bounding_box_within_swath(swath.bounding_box,test_box):
+
+
+
+#for tile in manager.swath_tile_list:
+#    print(tile.bounding_box)
+#    print(tile.file_path)
+#    print(tile.timestamp)
+#    print("\n")
+
+
+#print(x.get_latest_file_url())
+#x.download_latest_file()
