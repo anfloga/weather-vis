@@ -33,7 +33,6 @@ class BoundingBox:
             print(*list(corner.values()))
 
 
-#Data management logic
 class SwathTileManager:
 
     swath_tile_list = []
@@ -84,52 +83,56 @@ class SwathTileManager:
         else:
             return 'N'
 
-    def get_merged_swath_dataframe(self, data_type):
+    def get_merged_swath_dataframe(self, data_type, bounding_box):
+
+        if gu.point_north_of_bound(bounding_box.corners[0]["lat"], bounding_box.corners[1]["lat"]):
+            upper_lat = bounding_box.corners[1]["lat"]
+            lower_lat = bounding_box.corners[3]
+        else:
+            upper_lat = bounding_box.corners[0]["lat"]
+            lower_lat = bounding_box.corners[2]["lat"]
+
+        if gu.point_west_of_bound(bounding_box.corners[0]["long"],bounding_box.corners[2]["long"]):
+            west_long = bounding_box.corners[2]["long"]
+            east_long = bounding_box.corners[1]["long"]
+        else:
+            west_long = bounding_box.corners[0]["long"]
+            east_long = bounding_box.corners[3]["long"]
+
         merged_dataframe = pd.DataFrame()
+        lat_dataframe = pd.DataFrame()
+        long_dataframe = pd.DataFrame()
 
         for tile in self.swath_tile_list:
             merged_dataframe = pd.concat([merged_dataframe, tile.get_dataframe(data_type)])
+            lat_dataframe = pd.concat([lat_dataframe, tile.get_dataframe("Latitude")])
+            long_dataframe = pd.concat([long_dataframe, tile.get_dataframe("Longitude")])
 
-        return merged_dataframe
+        lat_stack = pd.DataFrame()
+        long_stack = pd.DataFrame()
+        type_stack = pd.DataFrame()
 
+        #stack the columns
+        for column in lat_dataframe:
+            lat_stack = pd.concat([lat_stack, lat_dataframe[column]])
+        for column in long_dataframe:
+            long_stack = pd.concat([long_stack, long_dataframe[column]])
+        for column in merged_dataframe:
+            type_stack = pd.concat([type_stack, merged_dataframe[column]])
 
-#End data management logic
-
-
-#class SwathTileExporter:
-#    def get_data(self, bounding_box, data_type):
-#        for geom in manager.swath_tile_list:
-
-swath_manager = SwathTileManager()
-#x = DataFetcher()
-directory = os.fsencode("/media/joe/DATA/weather_data/test/")
-
-
-test_box = BoundingBox({'lat':-34,'long':145},{'lat':-34,'long':148},{'lat':-38,'long':145},{'lat':-38,'long':149})
-
-
-for file in os.listdir(directory):
-    filename = os.fsdecode(directory) + os.fsdecode(file)
-    swath_manager.build_swath_tile(filename)
-    print(gu.bounding_box_within_swath(swath_manager.merged_swath_bounds,test_box))
-    print(swath_manager.get_merged_swath_dataframe("Cloud_Top_Height").shape)
+        merged_stack = pd.concat([lat_stack[lat_stack.columns[0]], long_stack[long_stack.columns[0]], type_stack[type_stack.columns[0]]], axis=1, keys=["lat","long",data_type])
 
 
-#print(point_south_of_bound(20,0)) #True
-#print(point_west_of_bound(20,0)) #True
+        #print(merged_stack.head())
+        #print(merged_stack.shape)
+        #print(upper_lat)
+        #print(lower_lat)
+        #print(west_long)
+        #print(east_long)
+
+        #lat is LT upper lat and GT lower lat and long is GT west long and LT east long
+        merged_stack = merged_stack.loc[(merged_stack["lat"] < upper_lat) & (merged_stack["lat"] > lower_lat) & (merged_stack["long"] > west_long) & (merged_stack["long"] < east_long)]
+        #merged_stack = merged_stack.loc[(merged_stack["lat"] > lower_lat)]
+        return merged_stack
 
 
-#for swath in swath_tile_list:
-#    if bounding_box_within_swath(swath.bounding_box,test_box):
-
-
-
-#for tile in manager.swath_tile_list:
-#    print(tile.bounding_box)
-#    print(tile.file_path)
-#    print(tile.timestamp)
-#    print("\n")
-
-
-#print(x.get_latest_file_url())
-#x.download_latest_file()
