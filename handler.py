@@ -1,31 +1,30 @@
 from flask import Flask
 app = Flask(__name__)
 
-import data_fetcher as ft
-import data_manager as dm
+import data_manager2 as dm
 import os
 import pandas as pd
 import threading
 
 
 swath_manager = dm.SwathTileManager()
-data_fetcher = ft.DataFetcher()
-
-
-def update():
-    threading.Timer(3.0, update).start()
-    data_fetcher.download_latest_file()
-    print('test')
-
-update()
+test_box = dm.BoundingBox({'lat':67.0,'long':-102.0},{'lat':67.0,'long':-100.0},{'lat':65.0,'long':-102.0},{'lat':65.0,'long':-100.0})
 
 
 @app.route("/")
 def handler():
-    directory = os.fsencode("/media/joe/DATA/weather_data/raw/")
-    test_box = dm.BoundingBox({'lat':-34.0,'long':145.0},{'lat':-34.0,'long':148.0},{'lat':-38.0,'long':145.0},{'lat':-38.0,'long':149.0})
-    for file in os.listdir(directory):
-        filename = os.fsdecode(directory) + os.fsdecode(file)
-        swath_manager.build_swath_tile(filename)
     return swath_manager.get_merged_swath_dataframe("Cloud_Top_Height",test_box).to_json(orient='records')
+
+
+@app.route("/trigger")
+def trigger():
+    directory = os.fsencode("/media/joe/DATA/weather_data/raw/201811322")
+    for file in os.listdir(directory):
+        filename = os.fsdecode(directory) + "/" + os.fsdecode(file)
+        print(filename)
+        tile = dm.SwathTile(filename)
+        if swath_manager.tile_in_bound(tile, test_box):
+            swath_manager.add_tile_to_list(tile)
+
+    return "done"
 

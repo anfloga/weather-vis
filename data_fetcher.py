@@ -1,8 +1,8 @@
 import datetime as dt
 import urllib as ul
+import shutil as si
 import pandas as pd
 import os
-
 
 
 class DataFetcher:
@@ -44,7 +44,7 @@ class DataFetcher:
             self.minute = str(minute_int)
 
     def add_new_filename(self, filename):
-        if self.latest_files.length > 10:
+        if len(self.latest_files) > 2:
             os.remove(self.latest_files[0])
         del self.latest_files[0]
         self.latest_files.append(filename)
@@ -57,7 +57,6 @@ class DataFetcher:
 
     def get_latest_filenames_url(self):
         filenames_url = self.laadsurl + self.year + "/" + self.day + ".csv"
-        print(filenames_url)
         return filenames_url
 
     def get_latest_filenames(self):
@@ -68,28 +67,37 @@ class DataFetcher:
             #TODO: log failure to read file csv
             return pd.DataFrame({'A' : []})
 
-    def get_latest_file_url(self):
-        latest_file_name = self.get_latest_filenames().iloc[-1]["name"]
-        latest_file_url = self.laadsurl + self.year + "/" + self.day + "/" + latest_file_name
-        return latest_file_url
+    def get_file_metadata(self):
+        latest_file_names = self.get_latest_filenames()
+        latest_file_names["url"] = latest_file_names.apply(lambda x: self.laadsurl + self.year + "/" + self.day + "/" + x["name"], axis=1)
+        return latest_file_names
 
-    def download_latest_file(self):
+    def download_files(self):
         try:
-            latest_file_url = self.get_latest_file_url()
-            path_to_write = self.data_path + self.year + self.day + self.hour + self.minute + ".hdf"
+            metadata = self.get_file_metadata()
 
-            if latest_file_url in self.latest_file_urls:
-                return
+            data_dir = self.data_path + self.year + self.day + self.hour + "/"
 
-            ul.request.urlretrieve(latest_file_url, path_to_write)
-            self.latest_file_urls.append(latest_file_url)
-            self.add_new_filename(path_to_write)
+            if not os.path.exists(data_dir):
+                os.makedirs(data_dir)
+
+            for index, row in metadata.iterrows():
+                path_to_write = data_dir + row["name"]
+
+                if path_to_write in self.latest_files:
+                    return False
+
+                ul.request.urlretrieve(row["url"], path_to_write)
+                #self.add_new_filename(path_to_write)
+                print(row["name"] + " downloaded")
 
             return True
-        except:
+        except Exception as ex:
             #TODO: log failure to download latest data file
+            print(ex)
             return False
 
 
 df = DataFetcher()
-df.download_latest_file()
+df.download_files()
+
