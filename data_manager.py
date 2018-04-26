@@ -5,10 +5,6 @@ import os
 import geoutils as gu
 
 class SwathTile:
-    def __init__(self, bounding_box, file_path, timestamp):
-         self.bounding_box = bounding_box
-         self.file_path = file_path
-         self.timestamp = timestamp
 
     def get_dataframe(self, data_type):
         data_file = hdf.SD(self.file_path, hdf.SDC.READ)
@@ -16,6 +12,23 @@ class SwathTile:
         #long_data = pd.DataFrame(data_file.select('Longitude').get())
         variable_data = pd.DataFrame(data_file.select(data_type).get())
         return variable_data
+
+    def __init__(self, file_path):
+        self.file_path = file_path
+        data_file = hdf.SD(file_path, hdf.SDC.READ)
+        lat_data = pd.DataFrame(data_file.select('Latitude').get())
+        long_data = pd.DataFrame(data_file.select('Longitude').get())
+        self.bounding_box = self.__calculate_bounds__(lat_data, long_data)
+        self.timestamp = dt.datetime.now()
+
+    def __calculate_bounds__(self, latitude_dataframe, longitude_dataframe):
+        corner_1 = {'lat': latitude_dataframe.iloc[0,0], 'long': longitude_dataframe.iloc[0,0]}
+        corner_2 = {'lat': latitude_dataframe.iloc[0,-1], 'long': longitude_dataframe.iloc[0,-1]}
+        corner_3 = {'lat': latitude_dataframe.iloc[-1,0], 'long': longitude_dataframe.iloc[-1,0]}
+        corner_4 = {'lat': latitude_dataframe.iloc[-1,-1], 'long': longitude_dataframe.iloc[-1,-1]}
+        bounding_box = BoundingBox(corner_1, corner_2, corner_3, corner_4)
+        return bounding_box
+
 
 
 class BoundingBox:
@@ -36,40 +49,30 @@ class SwathTileManager:
 
     swath_tile_list = []
 
-    def get_bounding_box(self, latitude_dataframe, longitude_dataframe):
-        corner_1 = {'lat': latitude_dataframe.iloc[0,0], 'long': longitude_dataframe.iloc[0,0]}
-        corner_2 = {'lat': latitude_dataframe.iloc[0,-1], 'long': longitude_dataframe.iloc[0,-1]}
-        corner_3 = {'lat': latitude_dataframe.iloc[-1,0], 'long': longitude_dataframe.iloc[-1,0]}
-        corner_4 = {'lat': latitude_dataframe.iloc[-1,-1], 'long': longitude_dataframe.iloc[-1,-1]}
-        bounding_box = BoundingBox(corner_1, corner_2, corner_3, corner_4)
-        return bounding_box
+    def tile_in_bound(self, swath_tile, bounding_box):
+        if gu.bounding_box_within_swath(bounding_box, swath_tile.bounding_box):
+            return True
+        return False
 
-    def build_swath_tile(self, file_path):
-        data_file = hdf.SD(file_path, hdf.SDC.READ)
-        lat_data = pd.DataFrame(data_file.select('Latitude').get())
-        long_data = pd.DataFrame(data_file.select('Longitude').get())
-        bounding_box = self.get_bounding_box(lat_data, long_data)
-        swath_tile = SwathTile(bounding_box, file_path, dt.datetime.now())
+    def add_tile_to_list(self, swath_tile):
         self.swath_tile_list.append(swath_tile)
-        if len(self.swath_tile_list) > 3:
-            del self.swath_tile_list[0]
-        self.update_merged_swath_bounds(self.swath_tile_list)
-        self.merged_swath_bounds.print_geometries()
+        self.update_merged_swath_bounds()
+        print("tile added: " + swath_tile.file_path)
 
-    def update_merged_swath_bounds(self, swath_tile_list):
+    def update_merged_swath_bounds(self):
         direction = self.direction_of_travel(self.swath_tile_list)
 
         if direction == 'N':
-            north_tile_index = len(swath_tile_list) - 1
+            north_tile_index = len(self.swath_tile_list) - 1
             south_tile_index = 0
         if direction == 'S':
             north_tile_index = 0
-            south_tile_index = len(swath_tile_list) - 1
+            south_tile_index = len(self.swath_tile_list) - 1
 
-        corner_1 = {'lat': swath_tile_list[north_tile_index].bounding_box.corners[0]['lat'], 'long': swath_tile_list[north_tile_index].bounding_box.corners[0]['long']}
-        corner_2 = {'lat': swath_tile_list[north_tile_index].bounding_box.corners[1]['lat'], 'long': swath_tile_list[north_tile_index].bounding_box.corners[1]['long']}
-        corner_3 = {'lat': swath_tile_list[south_tile_index].bounding_box.corners[2]['lat'], 'long': swath_tile_list[south_tile_index].bounding_box.corners[2]['long']}
-        corner_4 = {'lat': swath_tile_list[south_tile_index].bounding_box.corners[3]['lat'], 'long': swath_tile_list[south_tile_index].bounding_box.corners[3]['long']}
+        corner_1 = {'lat': self.swath_tile_list[north_tile_index].bounding_box.corners[0]['lat'], 'long': self.swath_tile_list[north_tile_index].bounding_box.corners[0]['long']}
+        corner_2 = {'lat': self.swath_tile_list[north_tile_index].bounding_box.corners[1]['lat'], 'long': self.swath_tile_list[north_tile_index].bounding_box.corners[1]['long']}
+        corner_3 = {'lat': self.swath_tile_list[south_tile_index].bounding_box.corners[2]['lat'], 'long': self.swath_tile_list[south_tile_index].bounding_box.corners[2]['long']}
+        corner_4 = {'lat': self.swath_tile_list[south_tile_index].bounding_box.corners[3]['lat'], 'long': self.swath_tile_list[south_tile_index].bounding_box.corners[3]['long']}
 
         self.merged_swath_bounds = BoundingBox(corner_1, corner_2, corner_3, corner_4)
 
