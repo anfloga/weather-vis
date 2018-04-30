@@ -30,7 +30,6 @@ class SwathTile:
         return bounding_box
 
 
-
 class BoundingBox:
 
     def __init__(self, corner_1, corner_2, corner_3, corner_4):
@@ -43,6 +42,56 @@ class BoundingBox:
     def print_geometries(self):
         for corner in self.corners:
             print(*list(corner.values()))
+
+    #this orders corners: NW, NE, SW, SE
+    def order_corners(self):
+        temp = []
+
+        #if this is the case, NW is below NE in lat
+        if self.max_lat_corner['long'] > max_long_corner['lat']:
+            temp.append(corners[self.min_long_corner])
+            temp.append(corners[self.max_lat_corner])
+            temp.append(corners[self.min_lat_corner])
+            temp.append(corners[self.max_long_corner])
+        else:
+            temp.append(corners[self.min_long_corner])
+            temp.append(corners[self.max_lat_corner])
+            temp.append(corners[self.min_lat_corner])
+            temp.append(corners[self.max_long_corner])
+
+
+    def get_extremes(self):
+        self.min_long = corners[0]['long']
+        self.min_long_corner = 0
+
+        self.max_long = corners[0]['long']
+        self.max_long_corner = 0
+
+        self.min_lat = corners[0]['lat']
+        self.min_lat_corner = 0
+
+        self.max_lat = corners[0]['lat']
+        self.max_lat_corner = 0
+
+
+        for i, corner in corners:
+            if corner['long'] < self.min_long:
+                self.min_long = corner['long']
+                self.min_long_corner = i
+
+            if corner['long'] > self.max_long:
+                self.max_long = corner['long']
+                self.max_long_corner = i
+
+            if corner['lat'] < self.min_lat:
+                self.min_lat = corner['lat']
+                self.min_lat_corner = i
+
+            if corner['lat'] > self.max_lat:
+                self.max_lat = corner['lat']
+                self.max_lat_corner = i
+
+
 
 
 class SwathTileManager:

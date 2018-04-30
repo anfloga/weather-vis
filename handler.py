@@ -1,7 +1,7 @@
 from flask import Flask
 app = Flask(__name__)
 
-import data_manager2 as dm
+import data_manager as dm
 import os
 import pandas as pd
 import threading
@@ -13,7 +13,9 @@ test_box = dm.BoundingBox({'lat':67.0,'long':-102.0},{'lat':67.0,'long':-100.0},
 
 @app.route("/")
 def handler():
-    return swath_manager.get_merged_swath_dataframe("Cloud_Top_Height",test_box).to_json(orient='records')
+#    return swath_manager.get_merged_swath_dataframe("Cloud_Top_Height",test_box).to_json(orient='records')
+    return swath_manager.get_merged_swath_dataframe("Cloud_Top_Height",test_box).to_csv()
+
 
 
 @app.route("/trigger")
