@@ -38,43 +38,30 @@ class BoundingBox:
         self.corners.append(corner_2)
         self.corners.append(corner_3)
         self.corners.append(corner_4)
+        self.get_extremes()
 
     def print_geometries(self):
         for corner in self.corners:
             print(*list(corner.values()))
 
-    #this orders corners: NW, NE, SW, SE
-    def order_corners(self):
-        temp = []
-
-        #if this is the case, NW is below NE in lat
-        if self.max_lat_corner['long'] > max_long_corner['lat']:
-            temp.append(corners[self.min_long_corner])
-            temp.append(corners[self.max_lat_corner])
-            temp.append(corners[self.min_lat_corner])
-            temp.append(corners[self.max_long_corner])
-        else:
-            temp.append(corners[self.min_long_corner])
-            temp.append(corners[self.max_lat_corner])
-            temp.append(corners[self.min_lat_corner])
-            temp.append(corners[self.max_long_corner])
-
-
     def get_extremes(self):
-        self.min_long = corners[0]['long']
+        self.min_long = self.corners[0]['long']
         self.min_long_corner = 0
 
-        self.max_long = corners[0]['long']
+        self.max_long = self.corners[0]['long']
         self.max_long_corner = 0
 
-        self.min_lat = corners[0]['lat']
+        self.min_lat = self.corners[0]['lat']
         self.min_lat_corner = 0
 
-        self.max_lat = corners[0]['lat']
+        self.max_lat = self.corners[0]['lat']
         self.max_lat_corner = 0
 
+        i = 0
 
-        for i, corner in corners:
+        for corner in self.corners:
+
+            #print(corner['long'])
             if corner['long'] < self.min_long:
                 self.min_long = corner['long']
                 self.min_long_corner = i
@@ -91,14 +78,24 @@ class BoundingBox:
                 self.max_lat = corner['lat']
                 self.max_lat_corner = i
 
-
+            i = i + 1
 
 
 class SwathTileManager:
 
     swath_tile_list = []
 
-    def tile_in_bound(self, swath_tile, bounding_box):
+    def query_tiles(self, datatype, bounding_box):
+        directory = os.fsencode("/media/joe/DATA/weather_data/raw/201811322")
+        for file in os.listdir(directory):
+            filename = os.fsdecode(directory) + "/" + os.fsdecode(file)
+            print(filename)
+            tile = SwathTile(filename)
+            if self.bound_in_tile(tile, bounding_box):
+                self.add_tile_to_list(tile)
+        return self.get_merged_swath_dataframe(datatype, bounding_box)
+
+    def bound_in_tile(self, swath_tile, bounding_box):
         if gu.bounding_box_within_swath(bounding_box, swath_tile.bounding_box):
             return True
         return False
@@ -107,6 +104,8 @@ class SwathTileManager:
         self.swath_tile_list.append(swath_tile)
         self.update_merged_swath_bounds()
         print("tile added: " + swath_tile.file_path)
+        if len(self.swath_tile_list) > 3:
+            swath_tile_list.pop(0)
 
     def update_merged_swath_bounds(self):
         direction = self.direction_of_travel(self.swath_tile_list)
@@ -171,19 +170,23 @@ class SwathTileManager:
         for column in merged_dataframe:
             type_stack = pd.concat([type_stack, merged_dataframe[column]])
 
-        merged_stack = pd.concat([lat_stack[lat_stack.columns[0]], long_stack[long_stack.columns[0]], type_stack[type_stack.columns[0]]], axis=1, keys=["lat","long",data_type])
-
-
-        #print(merged_stack.head())
-        #print(merged_stack.shape)
-        #print(upper_lat)
-        #print(lower_lat)
-        #print(west_long)
-        #print(east_long)
+        merged_stack = pd.concat([lat_stack[lat_stack.columns[0]], long_stack[long_stack.columns[0]], type_stack[type_stack.columns[0]]], axis=1, keys=["lat", "long", data_type])
 
         #lat is LT upper lat and GT lower lat and long is GT west long and LT east long
         merged_stack = merged_stack.loc[(merged_stack["lat"] < upper_lat) & (merged_stack["lat"] > lower_lat) & (merged_stack["long"] > west_long) & (merged_stack["long"] < east_long)]
         #merged_stack = merged_stack.loc[(merged_stack["lat"] > lower_lat)]
+
+        #convert to local
+        merged_stack["x"] = merged_stack["lat"].apply(lambda x: (x - bounding_box.min_lat) * 100)
+        merged_stack["y"] = merged_stack["long"].apply(lambda x: (x - bounding_box.min_long) * 100)
         return merged_stack
 
+    def get_local_point(self, minimum, point):
+        #1 deg = 100 px
+        #if minimum < 0 && point < 0:
+        #    return (point - minimum)
+
+        #if minimum < 0 && point > 0:
+        #    return (point - minimum)
+        return (point - minimum) * 100
 
