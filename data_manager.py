@@ -85,6 +85,9 @@ class SwathTileManager:
 
     swath_tile_list = []
 
+    def set_current_geometry(self, geometry):
+        self.geometry = geometry
+
     def query_tiles(self, datatype, bounding_box):
         directory = os.fsencode("/media/joe/DATA/weather_data/raw/201811322")
         for file in os.listdir(directory):
