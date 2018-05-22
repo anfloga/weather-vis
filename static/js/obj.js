@@ -1,35 +1,75 @@
-var camera, scene, renderer;
-var geometry, material, mesh;
+class Point {
+    constructor(x, y, dat) {
+        this.x = x;
+        this.y = y;
+        this.dat = dat;
+    }
 
-init();
-animate();
+    getPointMesh() {
+        var meshGeometry = new THREE.BoxGeometry(2, this.dat, 2);
+        meshGeometry.translate(this.x, this.dat / 2, this.y);
 
-function init() {
+        var meshMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
 
-	camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.01, 10 );
-	camera.position.z = 1;
+        return new THREE.Mesh(meshGeometry, meshMaterial);
+    }
+}
 
-	scene = new THREE.Scene();
+class Layer {
+    constructor() {
+        this.geometry = new THREE.Geometry();
+        this.mesh = new THREE.Mesh();
+    }
 
-	geometry = new THREE.BoxGeometry( 0.2, 0.2, 0.2 );
-	material = new THREE.MeshNormalMaterial();
+    addToMesh(point) {
+        this.geometry.mergeMesh(point.getPointMesh());
+    }
 
-	mesh = new THREE.Mesh( geometry, material );
-	scene.add( mesh );
+    addToScene(scene) {
+        this.mesh = new THREE.Mesh(this.geometry, new THREE.MeshBasicMaterial({color: 0xffff00}));
+        scene.add(this.mesh);
+    }
+}
 
-	renderer = new THREE.WebGLRenderer( { antialias: true } );
-	renderer.setSize( window.innerWidth, window.innerHeight );
-	document.body.appendChild( renderer.domElement );
+function getCamera() {
+    var camera;
+    camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
+    camera.position.z = 400;
 
+    var controls = new THREE.OrbitControls(camera);
+    return camera;
+}
+
+function render(scene, camera) {
+    var renderer = new THREE.WebGLRenderer( { antialias: true } );
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    document.body.appendChild( renderer.domElement );
+    renderer.render(scene, camera);
+}
+
+async function buildLayer(url) {
+    var layer = new Layer();
+    var raw = await fetch(url);
+    var pointArray = await raw.json();
+
+    for (var key in pointArray) {
+        var pointData = pointArray[key];
+        var point = new Point(pointData.x, pointData.y, pointData.Cloud_Top_Height);
+        layer.addToMesh(point);
+    }
+    layer.addToScene(scene);
 }
 
 function animate() {
-
-	requestAnimationFrame( animate );
-
-	mesh.rotation.x += 0.01;
-	mesh.rotation.y += 0.02;
-
-	renderer.render( scene, camera );
-
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera);
 }
+
+var scene = new THREE.Scene();
+var camera = getCamera();
+var renderer = new THREE.WebGLRenderer( { antialias: true } );
+renderer.setSize( window.innerWidth, window.innerHeight );
+document.body.appendChild( renderer.domElement );
+
+buildLayer("http://127.0.0.1:5000/get");
+animate();
