@@ -34,9 +34,11 @@ class Layer {
 function getCamera() {
     var camera;
     camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
-    camera.position.z = 400;
+    //camera.position.set(100, 100, 400);
+    //camera.lookAt(new THREE.Vector3(100, 100, 0));
 
     var controls = new THREE.OrbitControls(camera);
+    controls.target.set(100, 0, 100);
     return camera;
 }
 
@@ -51,6 +53,9 @@ async function buildLayer(url) {
     var layer = new Layer();
     var raw = await fetch(url);
     var pointArray = await raw.json();
+    console.log(pointArray);
+    console.log(pointArray[450]);
+    alert(pointArray.length);
 
     for (var key in pointArray) {
         var pointData = pointArray[key];
