@@ -27,6 +27,7 @@ def query():
 
 @app.route("/get")
 def get():
+    print(swath_manager.geometry)
     return swath_manager.geometry
 
 @app.route("/geom")

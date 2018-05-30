@@ -180,10 +180,13 @@ class SwathTileManager:
         #merged_stack = merged_stack.loc[(merged_stack["lat"] > lower_lat)]
 
         #convert to local
-        merged_stack["x"] = merged_stack["lat"].apply(lambda x: (x - bounding_box.min_lat) * 100)
-        merged_stack["y"] = merged_stack["long"].apply(lambda x: (x - bounding_box.min_long) * 100)
+        merged_stack["x"] = merged_stack["lat"].apply(lambda x: (x - bounding_box.min_lat) * 400)
+        merged_stack["y"] = merged_stack["long"].apply(lambda x: (x - bounding_box.min_long) * 400)
 
         merged_stack = merged_stack.drop(merged_stack[merged_stack.Cloud_Top_Height < 0].index)
+
+        merged_stack["Cloud_Top_Height"] = merged_stack["Cloud_Top_Height"].apply(lambda x: x / 20)
+
 
         return merged_stack
 

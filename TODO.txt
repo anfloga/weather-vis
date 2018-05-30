@@ -1,0 +1,5 @@
+- find out why incomplete geometry json is being served out
+- overlay cloud shader on cloud layer mesh
+- add cloud base
+- add ground layer
+- build ui
