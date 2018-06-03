@@ -184,9 +184,7 @@ class SwathTileManager:
         merged_stack["y"] = merged_stack["long"].apply(lambda x: (x - bounding_box.min_long) * 400)
 
         merged_stack = merged_stack.drop(merged_stack[merged_stack.Cloud_Top_Height < 0].index)
-
         merged_stack["Cloud_Top_Height"] = merged_stack["Cloud_Top_Height"].apply(lambda x: x / 20)
-
 
         return merged_stack
 
@@ -199,3 +197,15 @@ class SwathTileManager:
         #    return (point - minimum)
         return (point - minimum) * 100
 
+
+    def build_layer_map(self, bounding_box):
+        lat_span = ((bounding_box.max_lat + 180) - (bounding_box.min_lat + 180)) * 400
+        long_span = ((bounding_box.max_long + 180) - (bounding_box.min_long + 180)) * 400
+
+        layer_frame = pd.DataFrame()
+
+        for y in range(0, lat_span):
+            for x in range (0, long_span):
+                z = self.geometry.loc[(self.geometry["x"] < (x + 0.5)) & (self.geometry["x"] > (x - 0.5)) & (self.geometry["y"] > (y - 0.5)) & (self.geometry["y"] > (y - 0.5))]["Cloud_Top_Height"] or 0
+                df = pd.DataFrame([x, y, z])
+                layer_frame.append(df)
