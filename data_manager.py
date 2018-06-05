@@ -1,8 +1,10 @@
+import numpy as np
 import pandas as pd
 import datetime as dt
 import pyhdf.SD as hdf
 import os
 import geoutils as gu
+
 
 class SwathTile:
 
@@ -180,8 +182,8 @@ class SwathTileManager:
         #merged_stack = merged_stack.loc[(merged_stack["lat"] > lower_lat)]
 
         #convert to local
-        merged_stack["x"] = merged_stack["lat"].apply(lambda x: (x - bounding_box.min_lat) * 400)
-        merged_stack["y"] = merged_stack["long"].apply(lambda x: (x - bounding_box.min_long) * 400)
+        merged_stack["x"] = merged_stack["lat"].apply(lambda x: (x - bounding_box.min_lat) * 50)
+        merged_stack["y"] = merged_stack["long"].apply(lambda x: (x - bounding_box.min_long) * 50)
 
         merged_stack = merged_stack.drop(merged_stack[merged_stack.Cloud_Top_Height < 0].index)
         merged_stack["Cloud_Top_Height"] = merged_stack["Cloud_Top_Height"].apply(lambda x: x / 20)
@@ -199,13 +201,35 @@ class SwathTileManager:
 
 
     def build_layer_map(self, bounding_box):
-        lat_span = ((bounding_box.max_lat + 180) - (bounding_box.min_lat + 180)) * 400
-        long_span = ((bounding_box.max_long + 180) - (bounding_box.min_long + 180)) * 400
+        lat_span = int(round(((bounding_box.max_lat + 180) - (bounding_box.min_lat + 180)) * 50))
+        long_span = int(round(((bounding_box.max_long + 180) - (bounding_box.min_long + 180)) * 50))
 
-        layer_frame = pd.DataFrame()
+        print(lat_span)
+        print(long_span)
+        #print(self.geometry.loc[(self.geometry["y"] < 90.5) & (self.geometry["y"] > 89.5) & (self.geometry["x"] < 36.5) & (self.geometry["x"] > 35.5)].iloc[0]["Cloud_Top_Height"])
+        #print(self.geometry.head())
 
+
+        layer_frame = pd.DataFrame(columns=["x", "y", "z"])
         for y in range(0, lat_span):
             for x in range (0, long_span):
-                z = self.geometry.loc[(self.geometry["x"] < (x + 0.5)) & (self.geometry["x"] > (x - 0.5)) & (self.geometry["y"] > (y - 0.5)) & (self.geometry["y"] > (y - 0.5))]["Cloud_Top_Height"] or 0
-                df = pd.DataFrame([x, y, z])
-                layer_frame.append(df)
+
+                try:
+                    z = self.geometry.loc[(self.geometry["x"] < (x + 0.5)) & (self.geometry["x"] > (x - 0.5)) & (self.geometry["y"] < (y + 0.5)) & (self.geometry["y"] > (y - 0.5))].iloc[0]["Cloud_Top_Height"]
+                    print("point found")
+                except:
+                    z = 0
+
+                data = [[x, y ,z]]
+
+                df = pd.DataFrame.from_records(data, columns=["x", "y", "z"])
+
+                layer_frame = pd.concat([layer_frame, df], ignore_index=True)
+                print(layer_frame.shape)
+
+        layer_frame["x"] = layer_frame["x"].apply(lambda x: x * 4)
+        layer_frame["y"] = layer_frame["y"].apply(lambda x: x * 4)
+
+
+        self.layer = layer_frame.to_json(orient="records")
+        #layer_frame.to_csv("out.csv")

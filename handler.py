@@ -21,14 +21,14 @@ def query():
     corners = request.get_json()["corners"]
     query_box = dm.BoundingBox(corners[0],corners[1],corners[2],corners[3])
     query_box.print_geometries()
-    geometry = swath_manager.query_tiles("Cloud_Top_Height", query_box).to_json(orient="records")
+    geometry = swath_manager.query_tiles("Cloud_Top_Height", query_box)
     swath_manager.set_current_geometry(geometry)
+    swath_manager.build_layer_map(query_box)
     return "success"
 
 @app.route("/get")
 def get():
-    print(swath_manager.geometry)
-    return swath_manager.geometry
+    return swath_manager.layer
 
 @app.route("/geom")
 def geoms():
