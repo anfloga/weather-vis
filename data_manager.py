@@ -227,8 +227,8 @@ class SwathTileManager:
                 layer_frame = pd.concat([layer_frame, df], ignore_index=True)
                 print(layer_frame.shape)
 
-        layer_frame["x"] = layer_frame["x"].apply(lambda x: x * 4)
-        layer_frame["y"] = layer_frame["y"].apply(lambda x: x * 4)
+        layer_frame["x"] = layer_frame["x"].apply(lambda x: x * 8)
+        layer_frame["y"] = layer_frame["y"].apply(lambda x: x * 8)
 
 
         self.layer = layer_frame.to_json(orient="records")

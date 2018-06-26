@@ -42,7 +42,7 @@ class PointLayer extends Layer {
 class PlaneLayer extends Layer {
     constructor(x, y) {
         super();
-        //this.material = new THREE.MeshPhongMaterial({color: 0xdddddd, wireframe: false});
+        this.material = new THREE.MeshPhongMaterial({color: 0xdddddd, wireframe: true});
         this.geometry = new THREE.PlaneGeometry(x * 400, y * 400, 800, 800);
     }
 
@@ -59,10 +59,11 @@ class PlaneLayer extends Layer {
 
 function getCamera() {
     var camera;
-    camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
+    camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.1, 10000);
     //camera.position.set(100, 100, 400);
     //camera.lookAt(new THREE.Vector3(100, 100, 0));
-
+    camera.position.y = -200;
+    camera.position.z = 100;
     var controls = new THREE.OrbitControls(camera);
     controls.target.set(100, 0, 100);
     return camera;
@@ -89,7 +90,7 @@ async function buildPointLayer(url) {
 }
 
 async function buildPlaneLayer(url) {
-    var layer = new PlaneLayer();
+    var layer = new PlaneLayer(2, 2);
     var raw = await fetch(url);
     var pointArray = await raw.json();
 
@@ -108,6 +109,7 @@ function animate() {
 }
 
 var scene = new THREE.Scene();
+scene.background = new THREE.Color(0xffffff);
 var camera = getCamera();
 var renderer = new THREE.WebGLRenderer( { antialias: true } );
 renderer.setSize( window.innerWidth, window.innerHeight );
