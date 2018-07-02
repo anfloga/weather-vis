@@ -43,7 +43,7 @@ class PlaneLayer extends Layer {
     constructor(x, y) {
         super();
         this.material = new THREE.MeshPhongMaterial({color: 0xdddddd, wireframe: true});
-        this.geometry = new THREE.PlaneGeometry(x * 400, y * 400, 800, 800);
+        this.geometry = new THREE.PlaneGeometry(x * 400, y * 400, 400, 400);
     }
 
     setSegmentHeight(point) {
@@ -83,7 +83,7 @@ async function buildPointLayer(url) {
 
     for (var key in pointArray) {
         var pointData = pointArray[key];
-        var point = new Point(pointData.x, pointData.y, pointData.Cloud_Top_Height);
+        var point = new Point(pointData.x, pointData.y, pointData.z);
         layer.addPoint(point);
     }
     layer.addToScene(scene);
@@ -96,7 +96,7 @@ async function buildPlaneLayer(url) {
 
     for (var key in pointArray) {
         var pointData = pointArray[key];
-        var point = new Point(pointData.x, pointData.y, pointData.Cloud_Top_Height);
+        var point = new Point(pointData.x, pointData.y, pointData.z);
         layer.setSegmentHeight(point);
     }
     layer.addToScene(scene);
