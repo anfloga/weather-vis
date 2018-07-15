@@ -1,10 +1,12 @@
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from scipy import interpolate
 import datetime as dt
 import pyhdf.SD as hdf
 import os
 import geoutils as gu
-
 
 class SwathTile:
 
@@ -230,6 +232,34 @@ class SwathTileManager:
         layer_frame["x"] = layer_frame["x"].apply(lambda x: x * 4)
         layer_frame["y"] = layer_frame["y"].apply(lambda x: x * 4)
 
+        self.plot_plane(layer_frame)
+
+        self.interpolate_plane(layer_frame)
 
         self.layer = layer_frame.to_json(orient="records")
         #layer_frame.to_csv("out.csv")
+
+    def plot_plane(self, layer_frame):
+        fig = plt.figure()
+        ax = fig.gca(projection='3d')
+        ax.plot_trisurf(layer_frame["x"], layer_frame["y"], layer_frame["z"], cmap=plt.cm.viridis, linewidth=0.2)
+        plt.show()
+
+    def interpolate_plane(self, layer_frame):
+        print("first dataframe:")
+        print(layer_frame.head(100))
+        layer_frame["z"].replace(0, np.nan, inplace=True)
+        f = interpolate.interp2d(layer_frame.x, layer_frame.y, layer_frame.z, kind='linear', fill_value=np.nan)
+        newz = f(np.arange(0, 400, 1), np.arange(0, 400, 1))
+    #    layer_frame["z"].interpolate(inplace=True)
+
+        #xi = yi = np.arange(0, 1600, 4)
+        #xi,yi = np.meshgrid(xi,yi)
+
+        #zi = griddata((layer_frame.x.values, layer_frame.y.values), layer_frame.z.values, (xi,yi), method='linear')
+        #print(zi)
+       # layer_frame.z = zi
+
+        print("second dataframe:")
+        print(layer_frame.head(100))
+        self.plot_plane(layer_frame)
