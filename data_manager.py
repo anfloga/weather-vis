@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from scipy import interpolate
+
 import datetime as dt
 import pyhdf.SD as hdf
 import os
@@ -213,6 +214,11 @@ class SwathTileManager:
 
 
         layer_frame = pd.DataFrame(columns=["x", "y", "z"])
+
+        for col in layer_frame:
+            layer_frame[col] = pd.to_numeric(layer_frame[col], errors='coerce')
+
+
         for y in range(0, lat_span):
             for x in range (0, long_span):
 
@@ -249,17 +255,38 @@ class SwathTileManager:
         print("first dataframe:")
         print(layer_frame.head(100))
         layer_frame["z"].replace(0, np.nan, inplace=True)
-        f = interpolate.interp2d(layer_frame.x, layer_frame.y, layer_frame.z, kind='linear', fill_value=np.nan)
-        newz = f(np.arange(0, 400, 1), np.arange(0, 400, 1))
-    #    layer_frame["z"].interpolate(inplace=True)
+        #f = interpolate.interp2d(layer_frame.x, layer_frame.y, layer_frame.z, kind='linear', fill_value=np.nan)
+       # newz = f(np.arange(0, 400, 1), np.arange(0, 400, 1))
 
-        #xi = yi = np.arange(0, 1600, 4)
-        #xi,yi = np.meshgrid(xi,yi)
+       # layer_frame["z"].interpolate(inplace=True, method="akima", axis=0)
+       # layer_frame["z"].interpolate(inplace=True, method="akima", axis=1)
 
-        #zi = griddata((layer_frame.x.values, layer_frame.y.values), layer_frame.z.values, (xi,yi), method='linear')
-        #print(zi)
+#        xi = yi = np.arange(0, 1600, 4)
+#        xi,yi = np.meshgrid(xi,yi)
+
+        known = layer_frame.loc[layer_frame["z"].notnull()]
+
+        print(known.head())
+
+        knownpoints = known[["x","y"]]
+        points = knownpoints.as_matrix()
+
+        x = np.linspace(0, 400, 100)
+        y = np.linspace(0, 400, 100)
+        X, Y = np.meshgrid(x,y)
+
+        #print(X, Y)
+        #print(points)
+
+        #zi = interpolate.griddata((layer_frame.x.values, layer_frame.y.values), layer_frame.z.values, (xi,yi), method='linear', fill_value=np.nan)
+        zi = interpolate.griddata(points, known["z"], (X, Y), method='linear')
+
+        for i in zi:
+            print(i)
+
+        print(zi)
        # layer_frame.z = zi
 
-        print("second dataframe:")
-        print(layer_frame.head(100))
+       # print("second dataframe:")
+       # print(layer_frame.head(100))
         self.plot_plane(layer_frame)
