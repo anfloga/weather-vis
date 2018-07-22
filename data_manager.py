@@ -191,6 +191,7 @@ class SwathTileManager:
         merged_stack = merged_stack.drop(merged_stack[merged_stack.Cloud_Top_Height < 0].index)
         merged_stack["Cloud_Top_Height"] = merged_stack["Cloud_Top_Height"].apply(lambda x: x / 20)
 
+        #merged_stack.to_csv("out.csv")
         return merged_stack
 
     def get_local_point(self, minimum, point):
@@ -238,10 +239,11 @@ class SwathTileManager:
         layer_frame["x"] = layer_frame["x"].apply(lambda x: x * 4)
         layer_frame["y"] = layer_frame["y"].apply(lambda x: x * 4)
 
-        self.plot_plane(layer_frame)
+        #self.plot_plane(layer_frame)
 
         self.interpolate_plane(layer_frame)
 
+        self.plot_plane(layer_frame)
         self.layer = layer_frame.to_json(orient="records")
         #layer_frame.to_csv("out.csv")
 
@@ -252,41 +254,58 @@ class SwathTileManager:
         plt.show()
 
     def interpolate_plane(self, layer_frame):
-        print("first dataframe:")
-        print(layer_frame.head(100))
+        #print("first dataframe:")
+        #print(layer_frame.head(100))
         layer_frame["z"].replace(0, np.nan, inplace=True)
         #f = interpolate.interp2d(layer_frame.x, layer_frame.y, layer_frame.z, kind='linear', fill_value=np.nan)
-       # newz = f(np.arange(0, 400, 1), np.arange(0, 400, 1))
+        # newz = f(np.arange(0, 400, 1), np.arange(0, 400, 1))
 
-       # layer_frame["z"].interpolate(inplace=True, method="akima", axis=0)
-       # layer_frame["z"].interpolate(inplace=True, method="akima", axis=1)
+        # layer_frame["z"].interpolate(inplace=True, method="akima", axis=0)
+        # layer_frame["z"].interpolate(inplace=True, method="akima", axis=1)
 
-#        xi = yi = np.arange(0, 1600, 4)
-#        xi,yi = np.meshgrid(xi,yi)
+        #        xi = yi = np.arange(0, 1600, 4)
+        #        xi,yi = np.meshgrid(xi,yi)
 
         known = layer_frame.loc[layer_frame["z"].notnull()]
-
-        print(known.head())
+        extremeknown = pd.DataFrame([[0,0,0], [400,400,0], [0,400,0], [400,0,0]], columns=list('xyz'))
+        #known = pd.concat([known, extremeknown])
+        known.dropna(inplace=True)
+        #print(known.head())
 
         knownpoints = known[["x","y"]]
         points = knownpoints.as_matrix()
 
-        x = np.linspace(0, 400, 100)
-        y = np.linspace(0, 400, 100)
+        #known.to_csv("out.csv")
+
+        x = np.linspace(0, 400, 401)
+        y = np.linspace(0, 400, 401)
         X, Y = np.meshgrid(x,y)
 
-        #print(X, Y)
-        #print(points)
-
         #zi = interpolate.griddata((layer_frame.x.values, layer_frame.y.values), layer_frame.z.values, (xi,yi), method='linear', fill_value=np.nan)
-        zi = interpolate.griddata(points, known["z"], (X, Y), method='linear')
+        zi = interpolate.griddata(points, known["z"], (X, Y), method='cubic', fill_value=np.nan)
 
-        for i in zi:
-            print(i)
+        #plt.imshow(zi)
+        #plt.show()
+        #print("X[1]:")
+        #print(X[0][0])
+       # print("end X[1]")
 
-        print(zi)
-       # layer_frame.z = zi
+        for index, row in layer_frame.iterrows():
+            #print(row["x"])
+            #row["z"] = zi[int(row["x"])][int(row["y"])]
+            #print(row["z"])
+            layer_frame.loc[index, "z"] = zi[int(row["x"])][int(row["y"])]
 
+
+        print("finished")
+
+        #for x in range(0,401):
+        #    for y in range(0,401):
+        #        print("x:" + str(x) + "y:" + str(y))
+        #        print(zi[x][y])
+
+
+        #layer_frame.to_csv("out.csv")
        # print("second dataframe:")
        # print(layer_frame.head(100))
-        self.plot_plane(layer_frame)
+        #self.plot_plane(layer_frame)
