@@ -245,7 +245,9 @@ class SwathTileManager:
 
         self.plot_plane(layer_frame)
         self.layer = layer_frame.to_json(orient="records")
-        #layer_frame.to_csv("out.csv")
+
+        print("writing...")
+        layer_frame.to_csv("out.csv")
 
     def plot_plane(self, layer_frame):
         fig = plt.figure()
@@ -282,7 +284,7 @@ class SwathTileManager:
         X, Y = np.meshgrid(x,y)
 
         #zi = interpolate.griddata((layer_frame.x.values, layer_frame.y.values), layer_frame.z.values, (xi,yi), method='linear', fill_value=np.nan)
-        zi = interpolate.griddata(points, known["z"], (X, Y), method='cubic', fill_value=np.nan)
+        zi = interpolate.griddata(points, known["z"], (X, Y), method='cubic', fill_value=0)
 
         #plt.imshow(zi)
         #plt.show()
@@ -290,11 +292,22 @@ class SwathTileManager:
         #print(X[0][0])
        # print("end X[1]")
 
-        for index, row in layer_frame.iterrows():
+        #for index, row in layer_frame.iterrows():
             #print(row["x"])
             #row["z"] = zi[int(row["x"])][int(row["y"])]
             #print(row["z"])
-            layer_frame.loc[index, "z"] = zi[int(row["x"])][int(row["y"])]
+            #layer_frame.loc[index, "z"] = zi[int(row["x"])][int(row["y"])]
+
+        layer_frame = pd.DataFrame()
+
+
+        for xi in x:
+            for yi in y:
+                data = {"x": xi, "y": yi, "z": zi[int(xi)][int(yi)]}
+                #print(xi)
+                #print(yi)
+                #print(zi[int(xi)][int(yi)])
+                layer_frame = pd.concat([layer_frame, pd.DataFrame(data, index=[0])])
 
 
         print("finished")

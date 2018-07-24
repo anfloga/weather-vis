@@ -43,7 +43,7 @@ class PlaneLayer extends Layer {
     constructor(x, y) {
         super();
         this.material = new THREE.MeshPhongMaterial({color: 0xdddddd, wireframe: true});
-        this.geometry = new THREE.PlaneGeometry(x * 400, y * 400, 400, 400);
+        this.geometry = new THREE.PlaneGeometry(x * 200, y * 200, 400, 400);
     }
 
     setSegmentHeight(point) {
