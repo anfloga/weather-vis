@@ -236,13 +236,14 @@ class SwathTileManager:
                 layer_frame = pd.concat([layer_frame, df], ignore_index=True)
                 print(layer_frame.shape)
 
-        layer_frame["x"] = layer_frame["x"].apply(lambda x: x * 4)
-        layer_frame["y"] = layer_frame["y"].apply(lambda x: x * 4)
+        #layer_frame["x"] = layer_frame["x"].apply(lambda x: x * 4)
+        #layer_frame["y"] = layer_frame["y"].apply(lambda x: x * 4)
 
         #self.plot_plane(layer_frame)
 
-        self.interpolate_plane(layer_frame)
+        layer_frame = self.interpolate_plane(layer_frame)
 
+        print(layer_frame.head(100))
         self.plot_plane(layer_frame)
         self.layer = layer_frame.to_json(orient="records")
 
@@ -269,7 +270,7 @@ class SwathTileManager:
         #        xi,yi = np.meshgrid(xi,yi)
 
         known = layer_frame.loc[layer_frame["z"].notnull()]
-        extremeknown = pd.DataFrame([[0,0,0], [400,400,0], [0,400,0], [400,0,0]], columns=list('xyz'))
+        extremeknown = pd.DataFrame([[0,0,0], [100,100,0], [0,100,0], [100,0,0]], columns=list('xyz'))
         #known = pd.concat([known, extremeknown])
         known.dropna(inplace=True)
         #print(known.head())
@@ -279,8 +280,8 @@ class SwathTileManager:
 
         #known.to_csv("out.csv")
 
-        x = np.linspace(0, 400, 401)
-        y = np.linspace(0, 400, 401)
+        x = np.linspace(0, 100, 101)
+        y = np.linspace(0, 100, 101)
         X, Y = np.meshgrid(x,y)
 
         #zi = interpolate.griddata((layer_frame.x.values, layer_frame.y.values), layer_frame.z.values, (xi,yi), method='linear', fill_value=np.nan)
@@ -308,10 +309,11 @@ class SwathTileManager:
                 #print(yi)
                 #print(zi[int(xi)][int(yi)])
                 layer_frame = pd.concat([layer_frame, pd.DataFrame(data, index=[0])])
+                print(layer_frame.shape)
 
-
+        print(layer_frame.head(100))
         print("finished")
-
+        return layer_frame
         #for x in range(0,401):
         #    for y in range(0,401):
         #        print("x:" + str(x) + "y:" + str(y))

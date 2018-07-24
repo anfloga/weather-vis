@@ -24,6 +24,7 @@ class Layer {
 
     addToScene(scene) {
         this.mesh = new THREE.Mesh(this.geometry, this.material);
+        this.mesh.scale.set(4,4,0.25);
         scene.add(this.mesh);
     }
 }
@@ -43,7 +44,7 @@ class PlaneLayer extends Layer {
     constructor(x, y) {
         super();
         this.material = new THREE.MeshPhongMaterial({color: 0xdddddd, wireframe: true});
-        this.geometry = new THREE.PlaneGeometry(x * 200, y * 200, 400, 400);
+        this.geometry = new THREE.PlaneGeometry(100, 100, 100, 100);
     }
 
     setSegmentHeight(point) {
@@ -52,6 +53,8 @@ class PlaneLayer extends Layer {
         var index = x * y;
         this.geometry.vertices[index].z = point.dat;
     }
+
+
 }
 
 
@@ -65,7 +68,7 @@ function getCamera() {
     camera.position.y = -200;
     camera.position.z = 100;
     var controls = new THREE.OrbitControls(camera);
-    controls.target.set(100, 0, 100);
+//    controls.target.set(100, 0, 100);
     return camera;
 }
 
