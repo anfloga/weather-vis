@@ -6,6 +6,7 @@ app = Flask(__name__)
 import data_manager as dm
 import os
 import pandas as pd
+import geoutils as gu
 import threading
 import json
 
@@ -19,7 +20,9 @@ def root():
 @app.route("/query",methods=['POST'])
 def query():
     corners = request.get_json()["corners"]
-    query_box = dm.BoundingBox(corners[0],corners[1],corners[2],corners[3])
+    debug = request.get_json()["debug"]
+    corners = gu.sort_coordinates(corners)
+    query_box = dm.BoundingBox(corners[0],corners[1],corners[2],corners[3], debug)
     query_box.print_geometries()
     geometry = swath_manager.query_tiles("Cloud_Top_Height", query_box)
     swath_manager.set_current_geometry(geometry)

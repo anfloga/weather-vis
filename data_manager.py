@@ -31,19 +31,25 @@ class SwathTile:
         corner_2 = {'lat': latitude_dataframe.iloc[0,-1], 'long': longitude_dataframe.iloc[0,-1]}
         corner_3 = {'lat': latitude_dataframe.iloc[-1,0], 'long': longitude_dataframe.iloc[-1,0]}
         corner_4 = {'lat': latitude_dataframe.iloc[-1,-1], 'long': longitude_dataframe.iloc[-1,-1]}
-        bounding_box = BoundingBox(corner_1, corner_2, corner_3, corner_4)
+
+        corner_list = [corner_1, corner_2, corner_3, corner_4]
+
+        corner_list = gu.sort_coordinates(corner_list)
+
+        bounding_box = BoundingBox(corner_list[0], corner_list[1], corner_list[2], corner_list[3])
         return bounding_box
 
 
 class BoundingBox:
 
-    def __init__(self, corner_1, corner_2, corner_3, corner_4):
+    def __init__(self, corner_1, corner_2, corner_3, corner_4, debug=False):
         self.corners = []
         self.corners.append(corner_1)
         self.corners.append(corner_2)
         self.corners.append(corner_3)
         self.corners.append(corner_4)
         self.get_extremes()
+        self.debug = debug
 
     def print_geometries(self):
         for corner in self.corners:
@@ -104,7 +110,9 @@ class SwathTileManager:
         return self.get_merged_swath_dataframe(datatype, bounding_box)
 
     def bound_in_tile(self, swath_tile, bounding_box):
-        if gu.bounding_box_within_swath(bounding_box, swath_tile.bounding_box):
+        #swath_tile.bounding_box.print_geometries()
+        #bounding_box.print_geometries()
+        if gu.bounding_box_within_swath(swath_tile.bounding_box, bounding_box):
             return True
         return False
 
@@ -213,20 +221,27 @@ class SwathTileManager:
         #print(self.geometry.loc[(self.geometry["y"] < 90.5) & (self.geometry["y"] > 89.5) & (self.geometry["x"] < 36.5) & (self.geometry["x"] > 35.5)].iloc[0]["Cloud_Top_Height"])
         #print(self.geometry.head())
 
+        lat_quotient = 100 / lat_span
+        long_quotient = 100 / long_span
+
+        self.geometry["x"] = self.geometry["x"].apply(lambda x: x * long_quotient)
+        self.geometry["y"] = self.geometry["y"].apply(lambda y: y * lat_quotient)
 
         layer_frame = pd.DataFrame(columns=["x", "y", "z"])
 
         for col in layer_frame:
             layer_frame[col] = pd.to_numeric(layer_frame[col], errors='coerce')
 
-
-        for y in range(0, lat_span):
-            for x in range (0, long_span):
+        print("building...")
+        for y in range(0, 101):
+            for x in range (0, 101):
 
                 try:
-                    z = self.geometry.loc[(self.geometry["x"] < (x + 0.5)) & (self.geometry["x"] > (x - 0.5)) & (self.geometry["y"] < (y + 0.5)) & (self.geometry["y"] > (y - 0.5))].iloc[0]["Cloud_Top_Height"]
-                    print("point found")
+                    z = self.geometry.loc[(self.geometry["x"] < (x + 0.5)) & (self.geometry["x"] > (x - 0.5)) & (self.geometry["y"] < (y + 0.5)) & (self.geometry["y"] > (y - 0.5))]["Cloud_Top_Height"].mean()
+                    #print("point found")
+                    #print(self.geometry.loc[(self.geometry["x"] < (x + 0.5)) & (self.geometry["x"] > (x - 0.5)) & (self.geometry["y"] < (y + 0.5)) & (self.geometry["y"] > (y - 0.5))]["Cloud_Top_Height"])
                 except:
+                    #print("FUCK")
                     z = 0
 
                 data = [[x, y ,z]]
@@ -234,16 +249,15 @@ class SwathTileManager:
                 df = pd.DataFrame.from_records(data, columns=["x", "y", "z"])
 
                 layer_frame = pd.concat([layer_frame, df], ignore_index=True)
-                print(layer_frame.shape)
+                #print(layer_frame.shape)
 
         #layer_frame["x"] = layer_frame["x"].apply(lambda x: x * 4)
         #layer_frame["y"] = layer_frame["y"].apply(lambda x: x * 4)
 
         #self.plot_plane(layer_frame)
 
-        layer_frame = self.interpolate_plane(layer_frame)
+        #layer_frame = self.interpolate_plane(layer_frame)
 
-        print(layer_frame.head(100))
         self.plot_plane(layer_frame)
         self.layer = layer_frame.to_json(orient="records")
 
@@ -259,6 +273,7 @@ class SwathTileManager:
     def interpolate_plane(self, layer_frame):
         #print("first dataframe:")
         #print(layer_frame.head(100))
+        print(layer_frame.head())
         layer_frame["z"].replace(0, np.nan, inplace=True)
         #f = interpolate.interp2d(layer_frame.x, layer_frame.y, layer_frame.z, kind='linear', fill_value=np.nan)
         # newz = f(np.arange(0, 400, 1), np.arange(0, 400, 1))
