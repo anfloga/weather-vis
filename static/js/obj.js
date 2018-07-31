@@ -24,7 +24,7 @@ class Layer {
 
     addToScene(scene) {
         this.mesh = new THREE.Mesh(this.geometry, this.material);
-        this.mesh.scale.set(4,4,0.25);
+        this.mesh.scale.set(4, 4, 1);
         scene.add(this.mesh);
     }
 }

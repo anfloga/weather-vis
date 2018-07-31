@@ -190,16 +190,13 @@ class SwathTileManager:
 
         #lat is LT upper lat and GT lower lat and long is GT west long and LT east long
         merged_stack = merged_stack.loc[(merged_stack["lat"] < upper_lat) & (merged_stack["lat"] > lower_lat) & (merged_stack["long"] > west_long) & (merged_stack["long"] < east_long)]
-        #merged_stack = merged_stack.loc[(merged_stack["lat"] > lower_lat)]
 
         #convert to local
         merged_stack["x"] = merged_stack["lat"].apply(lambda x: (x - bounding_box.min_lat) * 50)
         merged_stack["y"] = merged_stack["long"].apply(lambda x: (x - bounding_box.min_long) * 50)
+        merged_stack["Cloud_Top_Height"][merged_stack["Cloud_Top_Height"] < 0] = 0
 
-        merged_stack = merged_stack.drop(merged_stack[merged_stack.Cloud_Top_Height < 0].index)
-        merged_stack["Cloud_Top_Height"] = merged_stack["Cloud_Top_Height"].apply(lambda x: x / 20)
-
-        #merged_stack.to_csv("out.csv")
+        merged_stack.to_csv("merged_out.csv")
         return merged_stack
 
     def get_local_point(self, minimum, point):
@@ -218,8 +215,6 @@ class SwathTileManager:
 
         print(lat_span)
         print(long_span)
-        #print(self.geometry.loc[(self.geometry["y"] < 90.5) & (self.geometry["y"] > 89.5) & (self.geometry["x"] < 36.5) & (self.geometry["x"] > 35.5)].iloc[0]["Cloud_Top_Height"])
-        #print(self.geometry.head())
 
         lat_quotient = 100 / lat_span
         long_quotient = 100 / long_span
@@ -232,16 +227,15 @@ class SwathTileManager:
         for col in layer_frame:
             layer_frame[col] = pd.to_numeric(layer_frame[col], errors='coerce')
 
+        self.geometry.to_csv("geom.csv")
+
         print("building...")
         for y in range(0, 101):
             for x in range (0, 101):
 
                 try:
                     z = self.geometry.loc[(self.geometry["x"] < (x + 0.5)) & (self.geometry["x"] > (x - 0.5)) & (self.geometry["y"] < (y + 0.5)) & (self.geometry["y"] > (y - 0.5))]["Cloud_Top_Height"].mean()
-                    #print("point found")
-                    #print(self.geometry.loc[(self.geometry["x"] < (x + 0.5)) & (self.geometry["x"] > (x - 0.5)) & (self.geometry["y"] < (y + 0.5)) & (self.geometry["y"] > (y - 0.5))]["Cloud_Top_Height"])
                 except:
-                    #print("FUCK")
                     z = 0
 
                 data = [[x, y ,z]]
@@ -249,16 +243,11 @@ class SwathTileManager:
                 df = pd.DataFrame.from_records(data, columns=["x", "y", "z"])
 
                 layer_frame = pd.concat([layer_frame, df], ignore_index=True)
-                #print(layer_frame.shape)
 
-        #layer_frame["x"] = layer_frame["x"].apply(lambda x: x * 4)
-        #layer_frame["y"] = layer_frame["y"].apply(lambda x: x * 4)
+        layer_frame["z"] = layer_frame["z"].apply(lambda z: z / 10)
+
 
         #self.plot_plane(layer_frame)
-
-        #layer_frame = self.interpolate_plane(layer_frame)
-
-        self.plot_plane(layer_frame)
         self.layer = layer_frame.to_json(orient="records")
 
         print("writing...")
@@ -266,76 +255,34 @@ class SwathTileManager:
 
     def plot_plane(self, layer_frame):
         fig = plt.figure()
-        ax = fig.gca(projection='3d')
+        ax = fig.add_subplot(111, projection='3d')
         ax.plot_trisurf(layer_frame["x"], layer_frame["y"], layer_frame["z"], cmap=plt.cm.viridis, linewidth=0.2)
         plt.show()
 
     def interpolate_plane(self, layer_frame):
-        #print("first dataframe:")
-        #print(layer_frame.head(100))
         print(layer_frame.head())
         layer_frame["z"].replace(0, np.nan, inplace=True)
-        #f = interpolate.interp2d(layer_frame.x, layer_frame.y, layer_frame.z, kind='linear', fill_value=np.nan)
-        # newz = f(np.arange(0, 400, 1), np.arange(0, 400, 1))
-
-        # layer_frame["z"].interpolate(inplace=True, method="akima", axis=0)
-        # layer_frame["z"].interpolate(inplace=True, method="akima", axis=1)
-
-        #        xi = yi = np.arange(0, 1600, 4)
-        #        xi,yi = np.meshgrid(xi,yi)
 
         known = layer_frame.loc[layer_frame["z"].notnull()]
         extremeknown = pd.DataFrame([[0,0,0], [100,100,0], [0,100,0], [100,0,0]], columns=list('xyz'))
-        #known = pd.concat([known, extremeknown])
         known.dropna(inplace=True)
-        #print(known.head())
 
         knownpoints = known[["x","y"]]
         points = knownpoints.as_matrix()
-
-        #known.to_csv("out.csv")
 
         x = np.linspace(0, 100, 101)
         y = np.linspace(0, 100, 101)
         X, Y = np.meshgrid(x,y)
 
-        #zi = interpolate.griddata((layer_frame.x.values, layer_frame.y.values), layer_frame.z.values, (xi,yi), method='linear', fill_value=np.nan)
         zi = interpolate.griddata(points, known["z"], (X, Y), method='cubic', fill_value=0)
-
-        #plt.imshow(zi)
-        #plt.show()
-        #print("X[1]:")
-        #print(X[0][0])
-       # print("end X[1]")
-
-        #for index, row in layer_frame.iterrows():
-            #print(row["x"])
-            #row["z"] = zi[int(row["x"])][int(row["y"])]
-            #print(row["z"])
-            #layer_frame.loc[index, "z"] = zi[int(row["x"])][int(row["y"])]
-
         layer_frame = pd.DataFrame()
-
 
         for xi in x:
             for yi in y:
                 data = {"x": xi, "y": yi, "z": zi[int(xi)][int(yi)]}
-                #print(xi)
-                #print(yi)
-                #print(zi[int(xi)][int(yi)])
                 layer_frame = pd.concat([layer_frame, pd.DataFrame(data, index=[0])])
                 print(layer_frame.shape)
 
         print(layer_frame.head(100))
         print("finished")
         return layer_frame
-        #for x in range(0,401):
-        #    for y in range(0,401):
-        #        print("x:" + str(x) + "y:" + str(y))
-        #        print(zi[x][y])
-
-
-        #layer_frame.to_csv("out.csv")
-       # print("second dataframe:")
-       # print(layer_frame.head(100))
-        #self.plot_plane(layer_frame)
