@@ -23,9 +23,11 @@ class Layer {
     }
 
     addToScene(scene) {
+        console.log(this.material);
         this.mesh = new THREE.Mesh(this.geometry, this.material);
-        this.mesh.scale.set(4, 4, 1);
+        this.mesh.scale.set(4, 4, 0.01);
         scene.add(this.mesh);
+        console.log("layer added");
     }
 }
 
@@ -44,7 +46,7 @@ class PlaneLayer extends Layer {
     constructor(x, y) {
         super();
         this.material = new THREE.MeshPhongMaterial({color: 0xdddddd, wireframe: true});
-        this.geometry = new THREE.PlaneGeometry(100, 100, 100, 100);
+        this.geometry = new THREE.PlaneGeometry(100, 100, 400, 400);
     }
 
     setSegmentHeight(point) {
@@ -54,10 +56,48 @@ class PlaneLayer extends Layer {
         this.geometry.vertices[index].z = point.dat;
     }
 
-
+    async setMaterial() {
+        var texture = new THREE.TextureLoader().load("/static/modis_granule_rgb_color_enh.png");
+        //this.material = new THREE.MeshBasicMaterial( { map: texture } );
+        this.material = new THREE.MeshBasicMaterial( { map: texture } );
+    }
 }
 
 
+class BufferLayer extends Layer {
+    constructor() {
+        super();
+        this.geometry = new THREE.BufferGeometry();
+    }
+
+
+    async setMaterial() {
+        var texture = new THREE.TextureLoader().load("/static/modis_granule_rgb_color_enh.png");
+        //this.material = new THREE.MeshBasicMaterial( { map: texture } );
+        //this.material = new THREE.MeshNormalMaterial( { map: texture } );
+
+        //this.material = new THREE.MeshPhongMaterial( {
+			//color: 0xaaaaaa, specular: 0xffffff, shininess: 250,
+			//side: THREE.DoubleSide, vertexColors: THREE.VertexColors
+		//} );
+        this.material = new THREE.MeshBasicMaterial({
+            vertexColors: THREE.VertexColors
+        });
+
+        console.log("material set");
+        console.log(this.material);
+    }
+
+//    async setMaterial() {
+        //var textureLoader = new THREE.TextureLoader();
+//        var image = await fetch("/static/modis_granule_rgb_color_enh.png");
+        //var material = new THREE.MeshBasicMaterial();
+        //textureLoader.load( "/static/modis_granule_rgb_color_enh.png", function (texture) { material = new THREE.MeshBasicMaterial({ map: texture }); console.log("material loaded"); console.log(material); }, undefined, function (err) { console.log("error!"); } );
+        //console.log(material);
+        //this.material = material;
+        //this.material = new THREE.MeshBasicMaterial( { map: texture, side: THREE.DoubleSide } );
+    //}
+}
 
 
 function getCamera() {
@@ -71,6 +111,7 @@ function getCamera() {
 //    controls.target.set(100, 0, 100);
     return camera;
 }
+
 
 function render(scene, camera) {
     var renderer = new THREE.WebGLRenderer( { antialias: true } );
@@ -89,8 +130,10 @@ async function buildPointLayer(url) {
         var point = new Point(pointData.x, pointData.y, pointData.z);
         layer.addPoint(point);
     }
+
     layer.addToScene(scene);
 }
+
 
 async function buildPlaneLayer(url) {
     var layer = new PlaneLayer(2, 2);
@@ -102,7 +145,94 @@ async function buildPlaneLayer(url) {
         var point = new Point(pointData.x, pointData.y, pointData.z);
         layer.setSegmentHeight(point);
     }
+
+    await layer.setMaterial();
     layer.addToScene(scene);
+}
+
+
+async function buildTestLayer() {
+    var layer = new PlaneLayer(2, 2);
+
+    await layer.setMaterial();
+    layer.addToScene(scene);
+}
+
+
+async function buildBufferLayer(url) {
+    var layer = new BufferLayer();
+    await layer.setMaterial();
+    var positions = [];
+	var normals = [];
+    var colours = [];
+
+    var colour = new THREE.Color();
+
+    var pA = new THREE.Vector3();
+    var pB = new THREE.Vector3();
+    var pC = new THREE.Vector3();
+
+    var cb = new THREE.Vector3();
+    var ab = new THREE.Vector3();
+
+    var raw = await fetch(url);
+    var vertexArray = await raw.json();
+
+    for (var key in vertexArray) {
+        var vertex = vertexArray[key];
+
+        positions.push(vertex.ax, vertex.ay, vertex.az);
+        positions.push(vertex.bx, vertex.by, vertex.bz);
+        positions.push(vertex.cx, vertex.cy, vertex.cz);
+
+        pA.set(vertex.ax, vertex.ay, vertex.az);
+        pB.set(vertex.bx, vertex.by, vertex.bz);
+        pC.set(vertex.cx, vertex.cy, vertex.cz);
+
+        cb.subVectors( pC, pB );
+        ab.subVectors( pA, pB );
+        cb.cross( ab );
+
+        cb.normalize();
+
+        var nx = cb.x;
+        var ny = cb.y;
+        var nz = cb.z;
+
+        normals.push( nx, ny, nz );
+        normals.push( nx, ny, nz );
+        normals.push( nx, ny, nz );
+
+        var vx = ( Math.max(vertex.ax, vertex.bx, vertex.cx) / 500 );
+        var vy = ( Math.max(vertex.ay, vertex.by, vertex.cy) / 500 );
+        var vz = ( Math.max(vertex.az, vertex.bz, vertex.cz) / 170 );
+
+        var redColour = (vertex.az + vertex.bz + vertex.cz) / 3.0;
+        redColour = redColour / 17000.0;
+        var greenColour = 1 - redColour
+
+        colour.setRGB( redColour, greenColour, 0 );
+
+        //colour.setRGB( Math.random(), Math.random(), Math.random());
+        colours.push( colour.r, colour.g, colour.b );
+        colours.push( colour.r, colour.g, colour.b );
+        colours.push( colour.r, colour.g, colour.b );
+    }
+
+    layer.geometry.addAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ).onUpload( disposeArray ) );
+    layer.geometry.addAttribute( 'normal', new THREE.Float32BufferAttribute( normals, 3 ).onUpload( disposeArray ) );
+    layer.geometry.addAttribute( 'color', new THREE.Float32BufferAttribute( colours, 3 ).onUpload( disposeArray ) );
+    layer.geometry.computeBoundingSphere();
+
+    //console.log(layer.geometry);
+    //console.log(layer.material);
+
+    layer.addToScene(scene);
+}
+
+
+function disposeArray() {
+    this.array = null;
 }
 
 
@@ -113,10 +243,27 @@ function animate() {
 
 var scene = new THREE.Scene();
 scene.background = new THREE.Color(0xffffff);
+var light = new THREE.DirectionalLight( 0xffffff );
+light.position.set( 0, 1, 1 ).normalize();
+scene.add(light);
+
+scene.add( new THREE.AmbientLight( 0x444444 ) );
+
+var light1 = new THREE.DirectionalLight( 0xffffff, 0.5 );
+light1.position.set( 1, 1, 1 );
+scene.add( light1 );
+
+var light2 = new THREE.DirectionalLight( 0xffffff, 1.5 );
+light2.position.set( 0, -1, 0 );
+scene.add( light2 );
+
+
+
 var camera = getCamera();
 var renderer = new THREE.WebGLRenderer( { antialias: true } );
 renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
 
-buildPlaneLayer("http://127.0.0.1:5000/get");
+buildBufferLayer("http://127.0.0.1:5000/get");
+buildTestLayer();
 animate();

@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from scipy import interpolate
+from matplotlib.tri.triangulation import Triangulation
 
 import datetime as dt
 import pyhdf.SD as hdf
@@ -151,9 +152,13 @@ class SwathTileManager:
 
     def get_merged_swath_dataframe(self, data_type, bounding_box):
 
+        bounding_box.print_geometries()
+
+
+
         if gu.point_north_of_bound(bounding_box.corners[0]["lat"], bounding_box.corners[1]["lat"]):
             upper_lat = bounding_box.corners[1]["lat"]
-            lower_lat = bounding_box.corners[3]
+            lower_lat = bounding_box.corners[3]["lat"]
         else:
             upper_lat = bounding_box.corners[0]["lat"]
             lower_lat = bounding_box.corners[2]["lat"]
@@ -188,8 +193,15 @@ class SwathTileManager:
 
         merged_stack = pd.concat([lat_stack[lat_stack.columns[0]], long_stack[long_stack.columns[0]], type_stack[type_stack.columns[0]]], axis=1, keys=["lat", "long", data_type])
 
+        print(merged_stack.shape)
+        print(upper_lat)
+        print(lower_lat)
+        print(west_long)
+        print(east_long)
+
         #lat is LT upper lat and GT lower lat and long is GT west long and LT east long
-        merged_stack = merged_stack.loc[(merged_stack["lat"] < upper_lat) & (merged_stack["lat"] > lower_lat) & (merged_stack["long"] > west_long) & (merged_stack["long"] < east_long)]
+        #merged_stack = merged_stack.loc[(merged_stack["lat"] < upper_lat) & (merged_stack["lat"] > lower_lat) & (merged_stack["long"] > west_long) & (merged_stack["long"] < east_long)]
+        merged_stack = merged_stack.loc[(merged_stack["lat"] < bounding_box.max_lat) & (merged_stack["lat"] > bounding_box.min_lat) & (merged_stack["long"] > bounding_box.min_long) & (merged_stack["long"] < bounding_box.max_long)]
 
         #convert to local
         merged_stack["x"] = merged_stack["lat"].apply(lambda x: (x - bounding_box.min_lat) * 50)
@@ -206,7 +218,7 @@ class SwathTileManager:
 
         #if minimum < 0 && point > 0:
         #    return (point - minimum)
-        return (point - minimum) * 100
+        return (point - minimum) * 400
 
 
     def build_layer_map(self, bounding_box):
@@ -229,29 +241,65 @@ class SwathTileManager:
 
         self.geometry.to_csv("geom.csv")
 
-        print("building...")
-        for y in range(0, 101):
-            for x in range (0, 101):
+       # layer_frame["x"] = self.geometry["x"]
+       # layer_frame["y"] = self.geometry["y"]
+       # layer_frame["z"] = self.geometry["Cloud_Top_Height"]
 
-                try:
-                    z = self.geometry.loc[(self.geometry["x"] < (x + 0.5)) & (self.geometry["x"] > (x - 0.5)) & (self.geometry["y"] < (y + 0.5)) & (self.geometry["y"] > (y - 0.5))]["Cloud_Top_Height"].mean()
-                except:
-                    z = 0
-
-                data = [[x, y ,z]]
-
-                df = pd.DataFrame.from_records(data, columns=["x", "y", "z"])
-
-                layer_frame = pd.concat([layer_frame, df], ignore_index=True)
-
-        layer_frame["z"] = layer_frame["z"].apply(lambda z: z / 10)
+        x = self.geometry["x"]
+        y = self.geometry["y"]
+        z = np.asarray(self.geometry["Cloud_Top_Height"])
 
 
-        #self.plot_plane(layer_frame)
-        self.layer = layer_frame.to_json(orient="records")
+        tri, args, kwargs = Triangulation.get_from_args_and_kwargs(x, y, z)
+
+        triangles = tri.get_masked_triangles()
+
+        xt = tri.x[triangles]
+        yt = tri.y[triangles]
+        zt = z[triangles]
+        verts = np.stack((xt, yt, zt), axis=-1)
+
+        #print(verts)
+
+        print(xt)
+        print(yt)
+        print(zt)
+
+        columns= ["a", "b", "c"]
+
+        arrays = [["a", "b", "c"],["x", "y", "z"]]
+        tuples = list(zip(*arrays))
+        index = pd.MultiIndex.from_tuples(tuples, names=['vector', 'vertex'])
+
+        vertdf = pd.DataFrame.from_records(verts, columns=columns)
+
+        adf = pd.DataFrame()
+        bdf = pd.DataFrame()
+        cdf = pd.DataFrame()
+
+        adf[['ax','ay','az']] = pd.DataFrame(vertdf.a.values.tolist())
+        bdf[['bx','by','bz']] = pd.DataFrame(vertdf.b.values.tolist())
+        cdf[['cx','cy','cz']] = pd.DataFrame(vertdf.c.values.tolist())
+
+        result = pd.concat([adf, bdf, cdf], axis=1)
+
+        print(result.head().to_json(orient="records"))
+
+        #self.layer = result.head(10000).to_json(orient="records")
+        self.layer = result.to_json(orient="records")
 
         print("writing...")
-        layer_frame.to_csv("out.csv")
+        result.to_csv("out.csv")
+
+    def get_vertex(self, xt, yt, zt):
+        #arrays = [["a", "b", "c"],["x", "y", "z"]]
+        vert = np.array([xt[0], yt[0], zt[0], xt[1], yt[1], zt[1], xt[2], yt[2], zt[2]])
+        #tuples = list(zip(*arrays))
+        #index = pd.MultiIndex.from_tuples(tuples, names=['vector', 'vertex'])
+        columns = ["x0", "y0", "z0", "x1", "y1", "z1", "x2", "y2", "z2"]
+        df = pd.DataFrame(vert)
+        return df
+
 
     def plot_plane(self, layer_frame):
         fig = plt.figure()
