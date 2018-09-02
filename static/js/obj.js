@@ -57,6 +57,7 @@ class PlaneLayer extends Layer {
     }
 
     async setMaterial() {
+        //var texture = new THREE.TextureLoader().load("/static/modis_granule_rgb_color_enh.png");
         var texture = new THREE.TextureLoader().load("/static/modis_granule_rgb_color_enh.png");
         //this.material = new THREE.MeshBasicMaterial( { map: texture } );
         this.material = new THREE.MeshBasicMaterial( { map: texture } );
@@ -87,6 +88,20 @@ class BufferLayer extends Layer {
         console.log("material set");
         console.log(this.material);
     }
+
+    async setTexture() {
+        var texture = new THREE.TextureLoader().load("/static/square.png");
+
+        texture.minFilter = THREE.NearestFilter;
+
+        this.material = new THREE.MeshBasicMaterial( { map: texture } );
+        //this.material = new THREE.MeshPhongMaterial( { map: texture } );
+        //this.material = new THREE.MeshNormalMaterial( { map: texture } );
+
+        console.log("material set");
+        console.log(this.material);
+    }
+
 
 //    async setMaterial() {
         //var textureLoader = new THREE.TextureLoader();
@@ -161,10 +176,11 @@ async function buildTestLayer() {
 
 async function buildBufferLayer(url) {
     var layer = new BufferLayer();
-    await layer.setMaterial();
+    await layer.setTexture();
     var positions = [];
 	var normals = [];
     var colours = [];
+    var uvs = [];
 
     var colour = new THREE.Color();
 
@@ -211,7 +227,18 @@ async function buildBufferLayer(url) {
         redColour = redColour / 17000.0;
         var greenColour = 1 - redColour
 
-        colour.setRGB( redColour, greenColour, 0 );
+        colour.setRGB( redColour, 0, greenColour );
+
+        var uvArray = new Float32Array([
+            0.0, 0.0,
+            1.0, 0.0,
+            1.0, 1.0,
+            0.0, 1.0,
+        ])
+
+        for (var i = 0, len = 9; i < len; i++) {
+            uvs.push(uvArray);
+        }
 
         //colour.setRGB( Math.random(), Math.random(), Math.random());
         colours.push( colour.r, colour.g, colour.b );
@@ -222,6 +249,7 @@ async function buildBufferLayer(url) {
     layer.geometry.addAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ).onUpload( disposeArray ) );
     layer.geometry.addAttribute( 'normal', new THREE.Float32BufferAttribute( normals, 3 ).onUpload( disposeArray ) );
     layer.geometry.addAttribute( 'color', new THREE.Float32BufferAttribute( colours, 3 ).onUpload( disposeArray ) );
+    //layer.geometry.addAttribute( 'uv', new THREE.Float32BufferAttribute( uvs, 0 ).onUpload( disposeArray ) );
     layer.geometry.computeBoundingSphere();
 
     //console.log(layer.geometry);
