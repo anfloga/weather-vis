@@ -3,3 +3,7 @@
 - add cloud base
 - add ground layer
 - build ui
+
+shader:
+pass textureMap as uniform from true-colour?
+simple vertex transparency from height?

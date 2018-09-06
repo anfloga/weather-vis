@@ -82,7 +82,8 @@ class BufferLayer extends Layer {
 			//side: THREE.DoubleSide, vertexColors: THREE.VertexColors
 		//} );
         this.material = new THREE.MeshBasicMaterial({
-            vertexColors: THREE.VertexColors
+            vertexColors: THREE.VertexColors,
+            transparent: true
         });
 
         console.log("material set");
@@ -90,18 +91,50 @@ class BufferLayer extends Layer {
     }
 
     async setTexture() {
+        //var texture = new THREE.TextureLoader().load("/static/modis_granule_rgb_color_enh.png");
+
+        //texture.minFilter = THREE.NearestFilter;
+
         var texture = new THREE.TextureLoader().load("/static/square.png");
-
-        texture.minFilter = THREE.NearestFilter;
-
         this.material = new THREE.MeshBasicMaterial( { map: texture } );
         //this.material = new THREE.MeshPhongMaterial( { map: texture } );
         //this.material = new THREE.MeshNormalMaterial( { map: texture } );
 
+        //this.material = new THREE.MeshPhongMaterial( {
+		//	color: 0xaaaaaa, specular: 0xffffff, shininess: 250,
+		//	side: THREE.DoubleSide,
+	    //  map: texture
+        //} );
         console.log("material set");
         console.log(this.material);
     }
 
+    async setShader() {
+
+        var texture = new THREE.TextureLoader().load("/static/cloud10.png");
+            texture.magFilter = THREE.LinearMipMapLinearFilter;
+            texture.minFilter = THREE.LinearMipMapLinearFilter;
+
+            var fog = new THREE.Fog( 0x4584b4, - 100, 3000 );
+
+            this.material = new THREE.ShaderMaterial( {
+
+                uniforms: {
+
+                    "map": { type: "t", value: texture },
+                    "fogColor" : { type: "c", value: fog.color },
+                    "fogNear" : { type: "f", value: fog.near },
+                    "fogFar" : { type: "f", value: fog.far },
+
+                },
+                vertexShader: document.getElementById( 'vs' ).textContent,
+                fragmentShader: document.getElementById( 'fs' ).textContent,
+                depthWrite: false,
+                depthTest: false,
+                transparent: true
+
+            } );
+    }
 
 //    async setMaterial() {
         //var textureLoader = new THREE.TextureLoader();
@@ -176,12 +209,12 @@ async function buildTestLayer() {
 
 async function buildBufferLayer(url) {
     var layer = new BufferLayer();
-    await layer.setTexture();
+    await layer.setMaterial();
     var positions = [];
 	var normals = [];
     var colours = [];
     var uvs = [];
-
+    var alphas = [];
     var colour = new THREE.Color();
 
     var pA = new THREE.Vector3();
@@ -223,11 +256,17 @@ async function buildBufferLayer(url) {
         var vy = ( Math.max(vertex.ay, vertex.by, vertex.cy) / 500 );
         var vz = ( Math.max(vertex.az, vertex.bz, vertex.cz) / 170 );
 
-        var redColour = (vertex.az + vertex.bz + vertex.cz) / 3.0;
-        redColour = redColour / 17000.0;
-        var greenColour = 1 - redColour
 
-        colour.setRGB( redColour, 0, greenColour );
+        //red-to-blue heatmap logic
+        //var redColour = (vertex.az + vertex.bz + vertex.cz) / 3.0;
+        //redColour = redColour / 17000.0;
+        //var greenColour = 1 - redColour
+
+        var redColour = ((vertex.az + vertex.bz + vertex.cz) / 3.0) / 17000.0;
+        var blueColour = ((vertex.az + vertex.bz + vertex.cz) / 3.0) / 17000.0;
+        var greenColour = ((vertex.az + vertex.bz + vertex.cz) / 3.0) / 17000.0;
+
+        colour.setRGB( redColour, blueColour, greenColour );
 
         var uvArray = new Float32Array([
             0.0, 0.0,
@@ -240,6 +279,9 @@ async function buildBufferLayer(url) {
             uvs.push(uvArray);
         }
 
+        var alpha = ((vertex.az + vertex.bz + vertex.cz) / 3.0);
+        alphas.push(alpha);
+
         //colour.setRGB( Math.random(), Math.random(), Math.random());
         colours.push( colour.r, colour.g, colour.b );
         colours.push( colour.r, colour.g, colour.b );
@@ -250,6 +292,7 @@ async function buildBufferLayer(url) {
     layer.geometry.addAttribute( 'normal', new THREE.Float32BufferAttribute( normals, 3 ).onUpload( disposeArray ) );
     layer.geometry.addAttribute( 'color', new THREE.Float32BufferAttribute( colours, 3 ).onUpload( disposeArray ) );
     //layer.geometry.addAttribute( 'uv', new THREE.Float32BufferAttribute( uvs, 0 ).onUpload( disposeArray ) );
+    layer.geometry.addAttribute( 'alpha', new THREE.Float32BufferAttribute( alphas, 1 ).onUpload( disposeArray ) );
     layer.geometry.computeBoundingSphere();
 
     //console.log(layer.geometry);
@@ -270,7 +313,9 @@ function animate() {
 }
 
 var scene = new THREE.Scene();
+
 scene.background = new THREE.Color(0xffffff);
+//scene.background = new THREE.Color(0xffffff);
 var light = new THREE.DirectionalLight( 0xffffff );
 light.position.set( 0, 1, 1 ).normalize();
 scene.add(light);
@@ -293,5 +338,5 @@ renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
 
 buildBufferLayer("http://127.0.0.1:5000/get");
-buildTestLayer();
+//buildTestLayer();
 animate();
