@@ -285,6 +285,23 @@ class SwathTileManager:
 
         print(result.head().to_json(orient="records"))
 
+        print("areas:")
+
+        #for i, row in result.head().iterrows():
+        #   print(gu.area([[row['ax'],row['ay'],row['az']],[row['bx'],row['by'],row['bz']],[row['cx'],row['cy'],row['cz']]]))
+
+        radar_curtain_indices = []
+
+        for i, row in result.iterrows():
+            arr = [row['az'],row['bz'],row['cz']]
+            arr = sorted(arr)
+            print(arr)
+            diff = max(arr) - min(arr)
+            if diff > 2500:
+                radar_curtain_indices.append(i)
+
+        result.drop(radar_curtain_indices, inplace=True)
+        print(result.shape)
         #self.layer = result.head(10000).to_json(orient="records")
         self.layer = result.to_json(orient="records")
 
