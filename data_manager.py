@@ -6,24 +6,42 @@ from scipy import interpolate
 from matplotlib.tri.triangulation import Triangulation
 
 import datetime as dt
-import pyhdf.SD as hdf
+#import pyhdf.SD as hdf
+import h5py as hdf
 import os
 import geoutils as gu
 
 class SwathTile:
 
-    def get_dataframe(self, data_type):
-        data_file = hdf.SD(self.file_path, hdf.SDC.READ)
+    def get_variable_dataframe(self, data_type):
         #lat_data = pd.DataFrame(data_file.select('Latitude').get())
         #long_data = pd.DataFrame(data_file.select('Longitude').get())
-        variable_data = pd.DataFrame(data_file.select(data_type).get())
+        #variable_data = pd.DataFrame(pd.HDFStore(self.data_file_path)['All_Data']['VIIRS-CBH-EDR_All'][data_type])
+
+        #variable_data = pd.read_hdf(self.data_file_path, 'All_Data/VIIRS-CBH-EDR_All')[data_type]
+
+        variable_data = pd.DataFrame(hdf.File(self.data_file_path)['All_Data']['VIIRS-CBH-EDR_All'][data_type][:])
+
+        #variable_data = pd.read_hdf(data_file['All_Data']['VIIRS-CBH-EDR_All'][data_type])
         return variable_data
 
-    def __init__(self, file_path):
-        self.file_path = file_path
-        data_file = hdf.SD(file_path, hdf.SDC.READ)
-        lat_data = pd.DataFrame(data_file.select('Latitude').get())
-        long_data = pd.DataFrame(data_file.select('Longitude').get())
+    def get_geo_dataframe(self, coord_type):
+        coord_data = pd.DataFrame(hdf.File(self.geo_file_path)['All_Data']['VIIRS-CLD-AGG-GEO_All'][coord_type][:])
+        return coord_data
+
+    def __init__(self, geo_file_path, data_file_path):
+        self.geo_file_path = geo_file_path
+        self.data_file_path = data_file_path
+        #geo_data_file = hdf.File(geo_file_path, 'r')
+
+        print(geo_file_path)
+        #geo_data_file = pd.read_hdf(geo_file_path, 'All_Data')
+
+        geo_data_file = hdf.File(geo_file_path)
+        long_data = pd.DataFrame(geo_data_file['All_Data']['VIIRS-CLD-AGG-GEO_All']['Longitude'][:])
+        lat_data = pd.DataFrame(geo_data_file['All_Data']['VIIRS-CLD-AGG-GEO_All']['Latitude'][:])
+
+        self.bounding_box = self.__calculate_bounds__(lat_data, long_data)
         self.bounding_box = self.__calculate_bounds__(lat_data, long_data)
         self.timestamp = dt.datetime.now()
 
@@ -101,13 +119,21 @@ class SwathTileManager:
         self.geometry = geometry
 
     def query_tiles(self, datatype, bounding_box):
-        directory = os.fsencode("/media/joe/DATA/weather_data/raw/201811322")
-        for file in os.listdir(directory):
-            filename = os.fsdecode(directory) + "/" + os.fsdecode(file)
-            print(filename)
-            tile = SwathTile(filename)
+        data_directory = os.fsencode("/media/joe/DATA/weather_data/viirs/20180916/cbh")
+        geo_directory = os.fsencode("/media/joe/DATA/weather_data/viirs/20180916/geo")
+
+        data_list = os.listdir(data_directory)
+        geo_list = os.listdir(geo_directory)
+
+        dir_length = len(geo_list)
+
+        for i in range(dir_length):
+            geo_filename = os.fsdecode(geo_directory) + "/" + os.fsdecode(geo_list[i])
+            data_filename = os.fsdecode(data_directory) + "/" + os.fsdecode(data_list[i])
+            tile = SwathTile(geo_filename, data_filename)
             if self.bound_in_tile(tile, bounding_box):
                 self.add_tile_to_list(tile)
+
         return self.get_merged_swath_dataframe(datatype, bounding_box)
 
     def bound_in_tile(self, swath_tile, bounding_box):
@@ -120,7 +146,7 @@ class SwathTileManager:
     def add_tile_to_list(self, swath_tile):
         self.swath_tile_list.append(swath_tile)
         self.update_merged_swath_bounds()
-        print("tile added: " + swath_tile.file_path)
+        print("tile added: " + swath_tile.geo_file_path)
         if len(self.swath_tile_list) > 3:
             swath_tile_list.pop(0)
 
@@ -175,9 +201,9 @@ class SwathTileManager:
         long_dataframe = pd.DataFrame()
 
         for tile in self.swath_tile_list:
-            merged_dataframe = pd.concat([merged_dataframe, tile.get_dataframe(data_type)])
-            lat_dataframe = pd.concat([lat_dataframe, tile.get_dataframe("Latitude")])
-            long_dataframe = pd.concat([long_dataframe, tile.get_dataframe("Longitude")])
+            merged_dataframe = pd.concat([merged_dataframe, tile.get_variable_dataframe(data_type)])
+            lat_dataframe = pd.concat([lat_dataframe, tile.get_geo_dataframe("Latitude")])
+            long_dataframe = pd.concat([long_dataframe, tile.get_geo_dataframe("Longitude")])
 
         lat_stack = pd.DataFrame()
         long_stack = pd.DataFrame()
@@ -206,7 +232,7 @@ class SwathTileManager:
         #convert to local
         merged_stack["x"] = merged_stack["lat"].apply(lambda x: (x - bounding_box.min_lat) * 50)
         merged_stack["y"] = merged_stack["long"].apply(lambda x: (x - bounding_box.min_long) * 50)
-        merged_stack["Cloud_Top_Height"][merged_stack["Cloud_Top_Height"] < 0] = 0
+        merged_stack["AverageCloudBaseHeight"][merged_stack["AverageCloudBaseHeight"] < 0] = 0
 
         merged_stack.to_csv("merged_out.csv")
         return merged_stack
@@ -247,7 +273,7 @@ class SwathTileManager:
 
         x = self.geometry["x"]
         y = self.geometry["y"]
-        z = np.asarray(self.geometry["Cloud_Top_Height"])
+        z = np.asarray(self.geometry["AverageCloudBaseHeight"])
 
 
         tri, args, kwargs = Triangulation.get_from_args_and_kwargs(x, y, z)

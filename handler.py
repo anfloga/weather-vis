@@ -24,7 +24,7 @@ def query():
     corners = gu.sort_coordinates(corners)
     query_box = dm.BoundingBox(corners[0],corners[1],corners[2],corners[3], debug)
     query_box.print_geometries()
-    geometry = swath_manager.query_tiles("Cloud_Top_Height", query_box)
+    geometry = swath_manager.query_tiles("AverageCloudBaseHeight", query_box)
     swath_manager.set_current_geometry(geometry)
     swath_manager.build_layer_map(query_box)
     return "success"
