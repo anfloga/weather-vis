@@ -207,7 +207,7 @@ async function buildTestLayer() {
 }
 
 
-async function buildBufferLayer(url) {
+async function buildBufferLayer(url, zheight) {
     var layer = new BufferLayer();
     await layer.setMaterial();
     var positions = [];
@@ -230,9 +230,9 @@ async function buildBufferLayer(url) {
     for (var key in vertexArray) {
         var vertex = vertexArray[key];
 
-        positions.push(vertex.ax, vertex.ay, vertex.az);
-        positions.push(vertex.bx, vertex.by, vertex.bz);
-        positions.push(vertex.cx, vertex.cy, vertex.cz);
+        positions.push(vertex.ax, vertex.ay, vertex.az + zheight);
+        positions.push(vertex.bx, vertex.by, vertex.bz + zheight);
+        positions.push(vertex.cx, vertex.cy, vertex.cz + zheight);
 
         pA.set(vertex.ax, vertex.ay, vertex.az);
         pB.set(vertex.bx, vertex.by, vertex.bz);
@@ -262,9 +262,9 @@ async function buildBufferLayer(url) {
         //redColour = redColour / 17000.0;
         //var greenColour = 1 - redColour
 
-        var redColour = ((vertex.az + vertex.bz + vertex.cz) / 3.0) / 17000.0;
-        var blueColour = ((vertex.az + vertex.bz + vertex.cz) / 3.0) / 17000.0;
-        var greenColour = ((vertex.az + vertex.bz + vertex.cz) / 3.0) / 17000.0;
+        var redColour = ((vertex.az + vertex.bz + vertex.cz) / 3.0) / 65535.0;
+        var blueColour = ((vertex.az + vertex.bz + vertex.cz) / 3.0) / 65535.0;
+        var greenColour = ((vertex.az + vertex.bz + vertex.cz) / 3.0) / 65535.0;
 
         colour.setRGB( redColour, blueColour, greenColour );
 
@@ -337,6 +337,7 @@ var renderer = new THREE.WebGLRenderer( { antialias: true } );
 renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
 
-buildBufferLayer("http://127.0.0.1:5000/get");
+buildBufferLayer("http://127.0.0.1:5000/layer?name=base", -100000);
+buildBufferLayer("http://127.0.0.1:5000/layer?name=top", 100000);
 //buildTestLayer();
 animate();

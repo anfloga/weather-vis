@@ -10,7 +10,14 @@ import geoutils as gu
 import threading
 import json
 
-swath_manager = dm.SwathTileManager()
+
+
+base_data_directory = os.fsencode("/media/joe/DATA/weather_data/viirs/20180916/cbh")
+geo_directory = os.fsencode("/media/joe/DATA/weather_data/viirs/20180916/geo")
+top_data_directory = os.fsencode("/media/joe/DATA/weather_data/viirs/20180916/cth")
+
+base_swath_manager = dm.SwathTileManager(base_data_directory, geo_directory)
+top_swath_manager = dm.SwathTileManager(top_data_directory, geo_directory)
 test_box = dm.BoundingBox({'lat':67.0,'long':-102.0},{'lat':67.0,'long':-100.0},{'lat':65.0,'long':-102.0},{'lat':65.0,'long':-100.0})
 
 @app.route("/")
@@ -24,14 +31,26 @@ def query():
     corners = gu.sort_coordinates(corners)
     query_box = dm.BoundingBox(corners[0],corners[1],corners[2],corners[3], debug)
     query_box.print_geometries()
-    geometry = swath_manager.query_tiles("AverageCloudBaseHeight", query_box)
-    swath_manager.set_current_geometry(geometry)
-    swath_manager.build_layer_map(query_box)
+    base_geometry = base_swath_manager.query_tiles("VIIRS-CBH-EDR_All", "AverageCloudBaseHeight", query_box)
+    base_swath_manager.set_current_geometry(base_geometry)
+    base_swath_manager.build_layer_map("AverageCloudBaseHeight", query_box)
+    print("DATA DIR:")
+    print(top_swath_manager.data_directory)
+    top_geometry = top_swath_manager.query_tiles("VIIRS-CTH-EDR_All", "AverageCloudTopHeight", query_box)
+    top_swath_manager.set_current_geometry(top_geometry)
+    top_swath_manager.build_layer_map("AverageCloudTopHeight", query_box)
+
     return "success"
 
-@app.route("/get")
+@app.route("/layer")
 def get():
-    return swath_manager.layer
+
+    layer_name = request.args.get('name')
+
+    if layer_name == 'base':
+        return base_swath_manager.layer
+    if layer_name == 'top':
+        return top_swath_manager.layer
 
 @app.route("/geom")
 def geoms():
@@ -39,3 +58,7 @@ def geoms():
     for tile in swath_manager.swath_tile_list:
         geoms.append(tile.bounding_box.print_geometries())
     return "view terminal for bounds"
+
+#data_directory = os.fsencode("/media/joe/DATA/weather_data/viirs/20180916/cbh")
+#geo_directory = os.fsencode("/media/joe/DATA/weather_data/viirs/20180916/geo")
+
