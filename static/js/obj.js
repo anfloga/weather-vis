@@ -83,7 +83,13 @@ class BufferLayer extends Layer {
 		//} );
         this.material = new THREE.MeshBasicMaterial({
             vertexColors: THREE.VertexColors,
-            transparent: true
+            transparent: false,
+            specular: new THREE.Color( 0x101010 ),
+            shininess: 40,
+            alphaTest: 0.15,
+            metal: true,
+            wrapAround: true,
+            side: THREE.DoubleSide
         });
 
         console.log("material set");
@@ -217,6 +223,8 @@ async function buildBufferLayer(url, zheight) {
     var alphas = [];
     var colour = new THREE.Color();
 
+    var scale = 3;
+
     var pA = new THREE.Vector3();
     var pB = new THREE.Vector3();
     var pC = new THREE.Vector3();
@@ -230,9 +238,9 @@ async function buildBufferLayer(url, zheight) {
     for (var key in vertexArray) {
         var vertex = vertexArray[key];
 
-        positions.push(vertex.ax, vertex.ay, vertex.az + zheight);
-        positions.push(vertex.bx, vertex.by, vertex.bz + zheight);
-        positions.push(vertex.cx, vertex.cy, vertex.cz + zheight);
+        positions.push(vertex.ax, vertex.ay, (vertex.az * scale) + zheight);
+        positions.push(vertex.bx, vertex.by, (vertex.bz * scale) + zheight);
+        positions.push(vertex.cx, vertex.cy, (vertex.cz * scale) + zheight);
 
         pA.set(vertex.ax, vertex.ay, vertex.az);
         pB.set(vertex.bx, vertex.by, vertex.bz);
@@ -337,7 +345,10 @@ var renderer = new THREE.WebGLRenderer( { antialias: true } );
 renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
 
-buildBufferLayer("http://127.0.0.1:5000/layer?name=base", -100000);
-buildBufferLayer("http://127.0.0.1:5000/layer?name=top", 100000);
+//buildBufferLayer("http://127.0.0.1:5000/layer?name=base", -100000);
+//buildBufferLayer("http://127.0.0.1:5000/layer?name=top", 100000);
+buildBufferLayer("http://127.0.0.1:5000/layer?name=base", 0);
+buildBufferLayer("http://127.0.0.1:5000/layer?name=top", 0);
+
 //buildTestLayer();
 animate();

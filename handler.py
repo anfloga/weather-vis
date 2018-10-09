@@ -34,8 +34,6 @@ def query():
     base_geometry = base_swath_manager.query_tiles("VIIRS-CBH-EDR_All", "AverageCloudBaseHeight", query_box)
     base_swath_manager.set_current_geometry(base_geometry)
     base_swath_manager.build_layer_map("AverageCloudBaseHeight", query_box)
-    print("DATA DIR:")
-    print(top_swath_manager.data_directory)
     top_geometry = top_swath_manager.query_tiles("VIIRS-CTH-EDR_All", "AverageCloudTopHeight", query_box)
     top_swath_manager.set_current_geometry(top_geometry)
     top_swath_manager.build_layer_map("AverageCloudTopHeight", query_box)

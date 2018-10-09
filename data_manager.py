@@ -20,8 +20,6 @@ class SwathTile:
 
         #variable_data = pd.read_hdf(self.data_file_path, 'All_Data/VIIRS-CBH-EDR_All')[data_type]
 
-        print("DATA FILE PATH:")
-        print(self.data_file_path)
         variable_data = pd.DataFrame(hdf.File(self.data_file_path)['All_Data'][path][data_type][:])
 
         #variable_data = pd.read_hdf(data_file['All_Data']['VIIRS-CBH-EDR_All'][data_type])
@@ -33,13 +31,10 @@ class SwathTile:
 
     def __init__(self, geo_file_path, data_file_path):
 
-        print(geo_file_path)
-        print(data_file_path)
         self.geo_file_path = geo_file_path
         self.data_file_path = data_file_path
         #geo_data_file = hdf.File(geo_file_path, 'r')
 
-        print(geo_file_path)
         #geo_data_file = pd.read_hdf(geo_file_path, 'All_Data')
 
         geo_data_file = hdf.File(geo_file_path)
@@ -130,12 +125,11 @@ class SwathTileManager:
         #data_directory = os.fsencode("/media/joe/DATA/weather_data/viirs/20180916/cbh")
         #geo_directory = os.fsencode("/media/joe/DATA/weather_data/viirs/20180916/geo")
 
-        print("in query_tiles, data directory is " + os.fsdecode(self.data_directory))
         geo_directory = self.geo_directory
         data_directory = self.data_directory
 
-        data_list = os.listdir(data_directory)
-        geo_list = os.listdir(geo_directory)
+        data_list = sorted(os.listdir(data_directory))
+        geo_list = sorted(os.listdir(geo_directory))
 
         dir_length = len(geo_list)
 
@@ -149,8 +143,8 @@ class SwathTileManager:
         return self.get_merged_swath_dataframe(path, datatype, bounding_box)
 
     def bound_in_tile(self, swath_tile, bounding_box):
-        swath_tile.bounding_box.print_geometries()
-        bounding_box.print_geometries()
+        #swath_tile.bounding_box.print_geometries()
+        #bounding_box.print_geometries()
         if gu.bounding_box_within_swath(swath_tile.bounding_box, bounding_box):
             return True
         return False
@@ -210,7 +204,7 @@ class SwathTileManager:
         lat_dataframe = pd.DataFrame()
         long_dataframe = pd.DataFrame()
 
-        print(len(self.swath_tile_list))
+        #print(len(self.swath_tile_list))
 
         for tile in self.swath_tile_list:
             merged_dataframe = pd.concat([merged_dataframe, tile.get_variable_dataframe(path, data_type)])
@@ -230,12 +224,6 @@ class SwathTileManager:
             type_stack = pd.concat([type_stack, merged_dataframe[column]])
 
         merged_stack = pd.concat([lat_stack[lat_stack.columns[0]], long_stack[long_stack.columns[0]], type_stack[type_stack.columns[0]]], axis=1, keys=["lat", "long", data_type])
-
-        print(merged_stack.shape)
-        print(upper_lat)
-        print(lower_lat)
-        print(west_long)
-        print(east_long)
 
         #lat is LT upper lat and GT lower lat and long is GT west long and LT east long
         #merged_stack = merged_stack.loc[(merged_stack["lat"] < upper_lat) & (merged_stack["lat"] > lower_lat) & (merged_stack["long"] > west_long) & (merged_stack["long"] < east_long)]
@@ -261,9 +249,6 @@ class SwathTileManager:
     def build_layer_map(self, data_type, bounding_box):
         lat_span = int(round(((bounding_box.max_lat + 180) - (bounding_box.min_lat + 180)) * 50))
         long_span = int(round(((bounding_box.max_long + 180) - (bounding_box.min_long + 180)) * 50))
-
-        print(lat_span)
-        print(long_span)
 
         lat_quotient = 100 / lat_span
         long_quotient = 100 / long_span
@@ -295,12 +280,6 @@ class SwathTileManager:
         zt = z[triangles]
         verts = np.stack((xt, yt, zt), axis=-1)
 
-        #print(verts)
-
-        print(xt)
-        print(yt)
-        print(zt)
-
         columns= ["a", "b", "c"]
 
         arrays = [["a", "b", "c"],["x", "y", "z"]]
@@ -319,10 +298,8 @@ class SwathTileManager:
 
         result = pd.concat([adf, bdf, cdf], axis=1)
 
-        print(result.head().to_json(orient="records"))
-
         #self.layer = result.head(10000).to_json(orient="records")
-        #result = self.filter_dataframe(result)
+        result = self.filter_dataframe(result)
         self.layer = result.to_json(orient="records")
 
 
@@ -335,12 +312,18 @@ class SwathTileManager:
         df = pd.DataFrame(vert)
         return df
 
-    def filter_dataframe(self, dataframe):
+    def filter_dataframe(self, df):
         """docstring for filter_dataframe"""
-        print(dataframe.shape)
-        dataframe = dataframe.drop(dataframe[((dataframe[['az','bz','cz']].max(axis=1) - dataframe[['az','bz','cz']].min(axis=1)) > 10000)].index)
-        print(dataframe.shape)
-        return dataframe
+        #dataframe = dataframe.drop(dataframe[((dataframe[['az','bz','cz']].max(axis=1) - dataframe[['az','bz','cz']].min(axis=1)) > 10000)].index)
+
+        #df = df.drop(df[(df.score < 50) & (df.score > 20)].index)
+
+        #dataframe = dataframe.drop(dataframe[((dataframe[['az','bz','cz']].max(axis=1) - dataframe[['az','bz','cz']].min(axis=1)) > 65000)].index)
+        df = df.drop(df[((df.az == 65535) | (df.bz == 65535) | (df.cz == 65535))].index)
+
+        #df = df.drop(df[(df.az < 50) & (df.score > 20)].index)
+
+        return df
 
 
     def plot_plane(self, layer_frame):
@@ -350,7 +333,6 @@ class SwathTileManager:
         plt.show()
 
     def interpolate_plane(self, layer_frame):
-        print(layer_frame.head())
         layer_frame["z"].replace(0, np.nan, inplace=True)
 
         known = layer_frame.loc[layer_frame["z"].notnull()]
@@ -371,8 +353,5 @@ class SwathTileManager:
             for yi in y:
                 data = {"x": xi, "y": yi, "z": zi[int(xi)][int(yi)]}
                 layer_frame = pd.concat([layer_frame, pd.DataFrame(data, index=[0])])
-                print(layer_frame.shape)
 
-        print(layer_frame.head(100))
-        print("finished")
         return layer_frame
