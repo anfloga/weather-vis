@@ -1,4 +1,5 @@
 import math
+from sympy import Point, Polygon, pi
 
 
 def take_angle(element):
@@ -75,7 +76,7 @@ def bounding_box_within_swath(swath_box, select_box):
     #print(match_3)
     #print(match_4)
 
-    if int(swath_box.corners[0]['long']) == -148:
+    if int(swath_box.corners[0]['long']) == -166:
         print('box found!!!')
 
         swath_box.print_geometries()
@@ -109,6 +110,15 @@ def bounding_box_within_swath(swath_box, select_box):
 
     return False
 
+def polygon_contain(swath_box, select_box):
+    sw1, sw2, sw3, sw4 = [(swath_box.corners[0]['lat'], swath_box.corners[0]['long']), (swath_box.corners[1]['lat'], swath_box.corners[1]['long']), (swath_box.corners[2]['lat'], swath_box.corners[2]['long']), (swath_box.corners[3]['lat'], swath_box.corners[3]['long'])]
+    se1, se2, se3, se4 = [(select_box.corners[0]['lat'], select_box.corners[0]['long']), (select_box.corners[1]['lat'], select_box.corners[1]['long']), (select_box.corners[2]['lat'], select_box.corners[2]['long']), (select_box.corners[3]['lat'], select_box.corners[3]['long'])]
+
+    swath_poly = Polygon(sw1, sw2, sw3, sw4)
+    select_poly = Polygon(se1, se2, se3, se4)
+
+    print(swath_poly.encloses(select_poly))
+    return swath_poly.encloses(select_poly)
 
 def point_east_of_bound(swath_long, select_long):
     if select_long > 90 and swath_long < -90:

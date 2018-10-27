@@ -145,7 +145,7 @@ class SwathTileManager:
     def bound_in_tile(self, swath_tile, bounding_box):
         #swath_tile.bounding_box.print_geometries()
         #bounding_box.print_geometries()
-        if gu.bounding_box_within_swath(swath_tile.bounding_box, bounding_box):
+        if gu.polygon_contain(swath_tile.bounding_box, bounding_box):
             return True
         return False
 
@@ -230,8 +230,8 @@ class SwathTileManager:
         merged_stack = merged_stack.loc[(merged_stack["lat"] < bounding_box.max_lat) & (merged_stack["lat"] > bounding_box.min_lat) & (merged_stack["long"] > bounding_box.min_long) & (merged_stack["long"] < bounding_box.max_long)]
 
         #convert to local
-        merged_stack["x"] = merged_stack["lat"].apply(lambda x: (x - bounding_box.min_lat) * 800)
-        merged_stack["y"] = merged_stack["long"].apply(lambda x: (x - bounding_box.min_long) * 50)
+        merged_stack["x"] = merged_stack["lat"].apply(lambda x: (x - bounding_box.min_lat) * 1200)
+        merged_stack["y"] = merged_stack["long"].apply(lambda x: (x - bounding_box.min_long) * 500)
         merged_stack[data_type][merged_stack[data_type] < 0] = 0
 
         return merged_stack

@@ -156,7 +156,7 @@ class BufferLayer extends Layer {
 
 function getCamera() {
     var camera;
-    camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.1, 10000);
+    camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.1, 100000);
     //camera.position.set(100, 100, 400);
     //camera.lookAt(new THREE.Vector3(100, 100, 0));
     camera.position.y = -200;
@@ -347,7 +347,7 @@ document.body.appendChild( renderer.domElement );
 
 //buildBufferLayer("http://127.0.0.1:5000/layer?name=base", -100000);
 //buildBufferLayer("http://127.0.0.1:5000/layer?name=top", 100000);
-buildBufferLayer("http://127.0.0.1:5000/layer?name=base", 0);
+//buildBufferLayer("http://127.0.0.1:5000/layer?name=base", 0);
 buildBufferLayer("http://127.0.0.1:5000/layer?name=top", 0);
 
 //buildTestLayer();
