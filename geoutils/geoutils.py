@@ -28,8 +28,8 @@ def sort_coordinates(corner_list):
     return sorted_corner_list
 
 def get_angle(point, midpoint):
-    dX = point['long'] - midpoint['long']
-    dY = point['lat'] - midpoint['lat']
+    dX = point[0] - midpoint[0]
+    dY = point[1] - midpoint[1]
     rads = math.atan2 (-dY, dX)
     rads = rads - (math.pi / 2)
     return rads
@@ -40,10 +40,10 @@ def get_midpoint(corner_list):
     long_list = []
 
     for corner in corner_list:
-        lat_list.append(corner['lat'])
-        long_list.append(corner['long'])
+        lat_list.append(corner[1])
+        long_list.append(corner[0])
 
-    return {'lat': sum(lat_list)/len(lat_list),'long': sum(long_list)/len(long_list)}
+    return (sum(long_list)/len(long_list), sum(lat_list)/len(lat_list))
 
 
 
