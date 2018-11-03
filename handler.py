@@ -8,7 +8,6 @@ import pandas as pd
 
 import threading
 import json
-from .models.bounding_box import BoundingBox
 from .models.layer import Layer
 from .services.viirs_service import ViirsService
 from shapely.geometry import shape, Point, mapping, Polygon
@@ -38,8 +37,7 @@ def query():
         return "only 1 feature allowed"
 
     query = shape(features[0]['geometry'])
-    json = top_service.query(query)
-    top = Layer(json)
+    top.layer_json = top_service.query(query)
     return "success"
 
 @app.route("/layer")
@@ -47,20 +45,8 @@ def get():
 
     layer_name = request.args.get('name')
 
-    print(top.layer_json)
-
     if layer_name == 'base':
         return base
     if layer_name == 'top':
         return top.layer_json
-
-@app.route("/geom")
-def geoms():
-    geoms = []
-    for tile in swath_manager.swath_tile_list:
-        geoms.append(tile.bounding_box.print_geometries())
-    return "view terminal for bounds"
-
-#data_directory = os.fsencode("/media/joe/DATA/weather_data/viirs/20180916/cbh")
-#geo_directory = os.fsencode("/media/joe/DATA/weather_data/viirs/20180916/geo")
 
