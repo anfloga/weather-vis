@@ -2,19 +2,10 @@ import pandas as pd
 import h5py as hdf
 import datetime as dt
 import numpy as np
-#from sympy import Point, Polygon, pi
 from shapely import geometry
 from ..geoutils import geoutils as gu
 
 class SwathTile:
-
-    def get_variable_dataframe(self, data_type, path):
-        variable_data = pd.DataFrame(hdf.File(self.data_file_path)['All_Data'][path][data_type][:])
-        return variable_data
-
-    def get_geo_dataframe(self, coord_type):
-        coord_data = pd.DataFrame(hdf.File(self.geo_file_path)['All_Data']['VIIRS-CLD-AGG-GEO_All'][coord_type][:])
-        return coord_data
 
     def __init__(self, geo_file_path, data_file_path):
         self.geo_file_path = geo_file_path
