@@ -223,7 +223,7 @@ async function buildBufferLayer(url, zheight) {
     var alphas = [];
     var colour = new THREE.Color();
 
-    var scale = 300;
+    var scale = 1;
 
     var pA = new THREE.Vector3();
     var pB = new THREE.Vector3();

@@ -74,7 +74,6 @@ class SatelliteService(interface.implements(TopographyService)):
             type_stack = pd.concat([type_stack, variable_dataframe[column]])
 
         df = pd.concat([lat_stack[lat_stack.columns[0]], long_stack[long_stack.columns[0]], type_stack[type_stack.columns[0]]], axis=1, keys=["lat", "long", self.datatype])
-
         bounds = query.bounds
         #lat is LT upper lat and GT lower lat; long is GT west long and LT east long
         df = df.loc[(df["lat"] < bounds[3]) & (df["lat"] > bounds[1]) & (df["long"] > bounds[0]) & (df["long"] < bounds[2])]
@@ -86,13 +85,16 @@ class SatelliteService(interface.implements(TopographyService)):
 
         query_bounds = query.bounds
 
+        print(query.bounds)
+
         lat_span = int(round(((query_bounds[3] + 180) - (query_bounds[1] + 180)) * 50))
         long_span = int(round(((query_bounds[2] + 180) - (query_bounds[0] + 180)) * 50))
 
+
         lat_quotient = 100 / lat_span
         long_quotient = 100 / long_span
-        df["x"] = df["long"].apply(lambda x: x * long_quotient * scale)
-        df["y"] = df["lat"].apply(lambda y: y * lat_quotient * scale)
+        df["x"] = df["long"].apply(lambda x: (x - query_bounds[0]) * 100)
+        df["y"] = df["lat"].apply(lambda y: (y - query_bounds[1]) * 100)
 
         return df
 
@@ -131,9 +133,8 @@ class SatelliteService(interface.implements(TopographyService)):
         cdf[['cx','cy','cz']] = pd.DataFrame(vertdf.c.values.tolist())
 
         result = pd.concat([adf, bdf, cdf], axis=1)
-
         result = result.drop(result[((result.az == 65535) | (result.bz == 65535) | (result.cz == 65535))].index)
-
+        print(result.head(100))
         return result.to_json(orient="records")
 
 

@@ -19,7 +19,7 @@ top_data_directory = os.fsencode("/media/joe/DATA/weather_data/viirs/20180916/te
 
 
 #base_service = ViirsService('base', geo_directory, base_data_directory)
-top_service = ViirsService('QF6_VIIRSCTHEDR', 'VIIRS-CTH-EDR_All', geo_directory, top_data_directory)
+top_service = ViirsService('AverageCloudTopHeight', 'VIIRS-CTH-EDR_All', geo_directory, top_data_directory)
 
 top = Layer("")
 
