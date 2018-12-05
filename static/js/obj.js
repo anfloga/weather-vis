@@ -223,8 +223,8 @@ async function buildBufferLayer(url, zheight) {
     var alphas = [];
     var colour = new THREE.Color();
 
+    //var scale = 0.01;
     var scale = 1;
-
     var pA = new THREE.Vector3();
     var pB = new THREE.Vector3();
     var pC = new THREE.Vector3();
@@ -237,7 +237,6 @@ async function buildBufferLayer(url, zheight) {
 
     for (var key in vertexArray) {
         var vertex = vertexArray[key];
-
         positions.push(vertex.ax, vertex.ay, (vertex.az * scale) + zheight);
         positions.push(vertex.bx, vertex.by, (vertex.bz * scale) + zheight);
         positions.push(vertex.cx, vertex.cy, (vertex.cz * scale) + zheight);

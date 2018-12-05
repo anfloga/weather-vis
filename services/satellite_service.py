@@ -1,7 +1,9 @@
 import interface
 import os
+import math
 import pandas as pd
 import numpy as np
+import pyproj as proj
 from shapely.geometry import mapping
 from shapely import geometry
 from matplotlib.tri.triangulation import Triangulation
@@ -17,6 +19,9 @@ class SatelliteService(interface.implements(TopographyService)):
         self.y_scale = 100
         self.datatype = datatype
         self.path_string = path_string
+        self.in_projection = proj.Proj(init='epsg:4326') # assuming you're using WGS84 geographic
+        #self.out_projection = proj.Proj(init='epsg:27700') # use a locally appropriate projected CRS
+        self.out_projection = proj.Proj(init='epsg:3857')
 
         if geo_directory is not None and data_directory is not None:
             self.__add_directory__(geo_directory, data_directory)
@@ -79,23 +84,44 @@ class SatelliteService(interface.implements(TopographyService)):
         df = df.loc[(df["lat"] < bounds[3]) & (df["lat"] > bounds[1]) & (df["long"] > bounds[0]) & (df["long"] < bounds[2])]
         return df
 
+    def __get_x__(self, lon, width):
+        return int(round(math.fmod((width * (180.0 + lon) / 360.0), (1.5 * width))))
+
+    def __get_y__(self, lat, width, height):
+        lat_rad = lat * math.pi / 180.0
+        merc = 0.5 * math.log( (1 + math.sin(lat_rad)) / (1 - math.sin(lat_rad)) )
+        return int(round((height / 2) - (width * merc / (2 * math.pi))))
+
+    def __project__(self, row):
+        #print(row['long'])
+        #print(row['lat'])
+
+        x2,y2 = proj.transform(self.in_projection, self.out_projection, row['long'], row['lat'])
+        #x2,y2 = self.in_projection(row['long'], row['lat'])
+
+        return pd.Series([x2, y2])
 
     def __to_local__(self, df, query, scale):
         df[self.datatype][df[self.datatype] < 0] = 0
 
         query_bounds = query.bounds
 
-        print(query.bounds)
+        #x_origin = self.__get_x__(query.centroid.coords[0][1], 10000)
+        #y_origin = self.__get_y__(query.centroid.coords[0][0], 10000, 10000)
+        print((query.centroid.coords[0][1],query.centroid.coords[0][0]))
+        #x_origin,y_origin = self.in_projection(query.centroid.coords[0][0],query.centroid.coords[0][1])
+        x_origin,y_origin = proj.transform(self.in_projection, self.out_projection, query.centroid.coords[0][0], query.centroid.coords[0][1])
 
-        lat_span = int(round(((query_bounds[3] + 180) - (query_bounds[1] + 180)) * 50))
-        long_span = int(round(((query_bounds[2] + 180) - (query_bounds[0] + 180)) * 50))
+        #df["x"] = df["lat"].apply(self.__get_x__, args=(10000,))
+        #df["y"] = df["long"].apply(self.__get_y__, args=(10000,10000))
 
+        #df["x"] = df["x"].apply(lambda x: x - x_origin)
+        #df["y"] = df["y"].apply(lambda y: y - y_origin)
 
-        lat_quotient = 100 / lat_span
-        long_quotient = 100 / long_span
-        df["x"] = df["long"].apply(lambda x: (x - query_bounds[0]) * 100)
-        df["y"] = df["lat"].apply(lambda y: (y - query_bounds[1]) * 100)
+        df[["x","y"]] = df.apply(self.__project__, axis=1)
 
+        df["x"] = df["x"].apply(lambda x: (x_origin - x) * 0.001)
+        df["y"] = df["y"].apply(lambda y: (y_origin - y) * 0.001)
         return df
 
     def __get_json__(self, df):
