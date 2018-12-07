@@ -32,6 +32,9 @@ class SatelliteService(interface.implements(TopographyService)):
     def __get_geo_dataframe__(self, tile, coord_type):
         raise NotImplementedError()
 
+    def __get_tile__(self, geo_filename, data_filename):
+        raise NotImplementedError()
+
     def __add_directory__(self, geo_directory, data_directory):
         data_list = sorted(os.listdir(data_directory))
         geo_list = sorted(os.listdir(geo_directory))
@@ -41,7 +44,7 @@ class SatelliteService(interface.implements(TopographyService)):
         for i in range(dir_length):
             geo_filename = os.fsdecode(geo_directory) + "/" + os.fsdecode(geo_list[i])
             data_filename = os.fsdecode(data_directory) + "/" + os.fsdecode(data_list[i])
-            tile = SwathTile(geo_filename, data_filename)
+            tile = self.__get_tile__(geo_filename, data_filename)
             self.add(tile)
 
     def add(self, swath_tile):
@@ -50,8 +53,8 @@ class SatelliteService(interface.implements(TopographyService)):
         self.swath_tiles.append(swath_tile)
 
     def query(self, query):
+
         for tile in self.swath_tiles:
-            x, y = tile.bounds.exterior.coords.xy
 
             if tile.bounds.contains(query):
                 return self.__get_frame__(tile, query)
@@ -106,17 +109,7 @@ class SatelliteService(interface.implements(TopographyService)):
 
         query_bounds = query.bounds
 
-        #x_origin = self.__get_x__(query.centroid.coords[0][1], 10000)
-        #y_origin = self.__get_y__(query.centroid.coords[0][0], 10000, 10000)
-        print((query.centroid.coords[0][1],query.centroid.coords[0][0]))
-        #x_origin,y_origin = self.in_projection(query.centroid.coords[0][0],query.centroid.coords[0][1])
         x_origin,y_origin = proj.transform(self.in_projection, self.out_projection, query.centroid.coords[0][0], query.centroid.coords[0][1])
-
-        #df["x"] = df["lat"].apply(self.__get_x__, args=(10000,))
-        #df["y"] = df["long"].apply(self.__get_y__, args=(10000,10000))
-
-        #df["x"] = df["x"].apply(lambda x: x - x_origin)
-        #df["y"] = df["y"].apply(lambda y: y - y_origin)
 
         df[["x","y"]] = df.apply(self.__project__, axis=1)
 
@@ -160,7 +153,6 @@ class SatelliteService(interface.implements(TopographyService)):
 
         result = pd.concat([adf, bdf, cdf], axis=1)
         result = result.drop(result[((result.az == 65535) | (result.bz == 65535) | (result.cz == 65535))].index)
-        print(result.head(100))
         return result.to_json(orient="records")
 
 
