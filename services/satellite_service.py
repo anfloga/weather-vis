@@ -13,14 +13,14 @@ from ..models.swath_tile import SwathTile
 
 class SatelliteService(interface.implements(TopographyService)):
 
-    def __init__(self, datatype, path_string, geo_directory = None, data_directory = None):
+    def __init__(self, datatype, path_string, x_scale = 100, y_scale = 100, z_scale = 100, geo_directory = None, data_directory = None):
         self.swath_tiles = []
-        self.x_scale = 100
-        self.y_scale = 100
+        self.x_scale = x_scale
+        self.y_scale = y_scale
+        self.z_scale = z_scale
         self.datatype = datatype
         self.path_string = path_string
         self.in_projection = proj.Proj(init='epsg:4326') # assuming you're using WGS84 geographic
-        #self.out_projection = proj.Proj(init='epsg:27700') # use a locally appropriate projected CRS
         self.out_projection = proj.Proj(init='epsg:3857')
 
         if geo_directory is not None and data_directory is not None:
@@ -53,7 +53,6 @@ class SatelliteService(interface.implements(TopographyService)):
         self.swath_tiles.append(swath_tile)
 
     def query(self, query):
-
         for tile in self.swath_tiles:
 
             if tile.bounds.contains(query):
@@ -61,7 +60,7 @@ class SatelliteService(interface.implements(TopographyService)):
 
     def __get_frame__(self, tile, query_bounds):
         df = self.__to_grid__(tile, query_bounds)
-        df = self.__to_local__(df, query_bounds, 100)
+        df = self.__to_local__(df, query_bounds, self.z_scale)
         return self.__get_json__(df)
 
     def __to_grid__(self, tile, query):
@@ -87,27 +86,24 @@ class SatelliteService(interface.implements(TopographyService)):
         df = df.loc[(df["lat"] < bounds[3]) & (df["lat"] > bounds[1]) & (df["long"] > bounds[0]) & (df["long"] < bounds[2])]
         return df
 
-    def __get_x__(self, lon, width):
-        return int(round(math.fmod((width * (180.0 + lon) / 360.0), (1.5 * width))))
+    def __scale_z__(self, df, scale):
+        max_z = df[self.datatype].max()
+        min_z = df[self.datatype].min()
 
-    def __get_y__(self, lat, width, height):
-        lat_rad = lat * math.pi / 180.0
-        merc = 0.5 * math.log( (1 + math.sin(lat_rad)) / (1 - math.sin(lat_rad)) )
-        return int(round((height / 2) - (width * merc / (2 * math.pi))))
+        df[self.datatype] = df[self.datatype].apply(lambda z: (scale * ((z - min_z) / (max_z - min_z))))
+        return df
 
     def __project__(self, row):
-        #print(row['long'])
-        #print(row['lat'])
-
         x2,y2 = proj.transform(self.in_projection, self.out_projection, row['long'], row['lat'])
-        #x2,y2 = self.in_projection(row['long'], row['lat'])
 
         return pd.Series([x2, y2])
 
     def __to_local__(self, df, query, scale):
         df[self.datatype][df[self.datatype] < 0] = 0
+        df[self.datatype][df[self.datatype] == 65535] = 0
+        df = df.reset_index(drop=True)
 
-        query_bounds = query.bounds
+        df = self.__scale_z__(df, scale)
 
         x_origin,y_origin = proj.transform(self.in_projection, self.out_projection, query.centroid.coords[0][0], query.centroid.coords[0][1])
 
@@ -152,7 +148,10 @@ class SatelliteService(interface.implements(TopographyService)):
         cdf[['cx','cy','cz']] = pd.DataFrame(vertdf.c.values.tolist())
 
         result = pd.concat([adf, bdf, cdf], axis=1)
-        result = result.drop(result[((result.az == 65535) | (result.bz == 65535) | (result.cz == 65535))].index)
+        #result = result.drop(result[((result.az == 65535) | (result.bz == 65535) | (result.cz == 65535))].index)
+        result = result.drop(result[((result.az == 0) | (result.bz == 0) | (result.cz == 0))].index)
+
+        print(result.shape)
         return result.to_json(orient="records")
 
 

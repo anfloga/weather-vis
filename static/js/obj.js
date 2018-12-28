@@ -84,11 +84,7 @@ class BufferLayer extends Layer {
         this.material = new THREE.MeshBasicMaterial({
             vertexColors: THREE.VertexColors,
             transparent: false,
-            specular: new THREE.Color( 0x101010 ),
-            shininess: 40,
-            alphaTest: 0.15,
-            metal: true,
-            wrapAround: true,
+            //alphaTest: 0.15,
             side: THREE.DoubleSide
         });
 
@@ -296,10 +292,10 @@ async function buildBufferLayer(url, zheight) {
     }
 
     layer.geometry.addAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ).onUpload( disposeArray ) );
-    layer.geometry.addAttribute( 'normal', new THREE.Float32BufferAttribute( normals, 3 ).onUpload( disposeArray ) );
+    //layer.geometry.addAttribute( 'normal', new THREE.Float32BufferAttribute( normals, 3 ).onUpload( disposeArray ) );
     layer.geometry.addAttribute( 'color', new THREE.Float32BufferAttribute( colours, 3 ).onUpload( disposeArray ) );
     //layer.geometry.addAttribute( 'uv', new THREE.Float32BufferAttribute( uvs, 0 ).onUpload( disposeArray ) );
-    layer.geometry.addAttribute( 'alpha', new THREE.Float32BufferAttribute( alphas, 1 ).onUpload( disposeArray ) );
+    //layer.geometry.addAttribute( 'alpha', new THREE.Float32BufferAttribute( alphas, 1 ).onUpload( disposeArray ) );
     layer.geometry.computeBoundingSphere();
 
     //console.log(layer.geometry);

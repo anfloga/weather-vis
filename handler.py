@@ -20,8 +20,8 @@ top_data_directory = os.fsencode("/media/joe/DATA/weather_data/viirs/20180916/te
 modis_directory = os.fsencode("/media/joe/DATA/weather_data/raw/201810319")
 
 #base_service = ViirsService('base', geo_directory, base_data_directory)
-#top_service = ViirsService('AverageCloudTopHeight', 'VIIRS-CTH-EDR_All', geo_directory, top_data_directory)
-modis_top_service = ModisService('Cloud_Top_Height', '', modis_directory, modis_directory)
+top_service = ViirsService('AverageCloudTopHeight', 'VIIRS-CTH-EDR_All', z_scale = 200000, geo_directory = geo_directory, data_directory = top_data_directory)
+#top_service = ModisService('Cloud_Top_Height', '', z_scale = 10, geo_directory = modis_directory, data_directory = modis_directory)
 
 top = Layer("")
 
@@ -39,7 +39,7 @@ def query():
         return "only 1 feature allowed"
 
     query = shape(features[0]['geometry'])
-    top.layer_json = modis_top_service.query(query)
+    top.layer_json = top_service.query(query)
     return "success"
 
 @app.route("/layer")

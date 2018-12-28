@@ -16,7 +16,7 @@ class ViirsService(SatelliteService):
     def __get_tile__(self, geo_filename, data_filename):
         return ViirsTile(geo_filename, data_filename)
 
-    def __init__(self, datatype, path_string, geo_directory = None, data_directory = None):
-        super().__init__(datatype, path_string, geo_directory, data_directory)
+    def __init__(self, datatype, path_string, x_scale = 100, y_scale = 100, z_scale = 100, geo_directory = None, data_directory = None):
+        super().__init__(datatype, path_string, x_scale, y_scale, z_scale, geo_directory, data_directory)
 
 
