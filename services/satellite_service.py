@@ -26,12 +26,6 @@ class SatelliteService(interface.implements(TopographyService)):
         if geo_directory is not None and data_directory is not None:
             self.__add_directory__(geo_directory, data_directory)
 
-    def __get_variable_dataframe__(self, tile):
-        raise NotImplementedError()
-
-    def __get_geo_dataframe__(self, tile, coord_type):
-        raise NotImplementedError()
-
     def __get_tile__(self, geo_filename, data_filename):
         raise NotImplementedError()
 
@@ -64,9 +58,9 @@ class SatelliteService(interface.implements(TopographyService)):
         return self.__get_json__(df)
 
     def __to_grid__(self, tile, query):
-        variable_dataframe = self.__get_variable_dataframe__(tile)
-        lat_dataframe = self.__get_geo_dataframe__(tile, "Latitude")
-        long_dataframe = self.__get_geo_dataframe__(tile, "Longitude")
+        variable_dataframe = tile.__get_variable_dataframe__()
+        lat_dataframe = tile.__get_geo_dataframe__("Latitude")
+        long_dataframe = tile.__get_geo_dataframe__("Longitude")
 
         lat_stack = pd.DataFrame()
         long_stack = pd.DataFrame()

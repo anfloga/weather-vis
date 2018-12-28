@@ -9,6 +9,12 @@ from ..geoutils import geoutils as gu
 
 class SwathTile:
 
+    def __init__(self, datatype, geo_file_path, data_file_path):
+        self.datatype = datatype
+        self.geo_file_path = geo_file_path
+        self.data_file_path = data_file_path
+        self.timestamp = dt.datetime.now()
+
     def __calculate_bounds__(self, latitude_dataframe, longitude_dataframe):
         shape = latitude_dataframe.shape
 
@@ -41,4 +47,11 @@ class SwathTile:
             points.append(point)
 
         return points
+
+    def __get_variable_dataframe__(self):
+        raise NotImplementedError()
+
+    def __get_geo_dataframe__(self, coord_type):
+        raise NotImplementedError()
+
 
