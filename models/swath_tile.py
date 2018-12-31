@@ -4,15 +4,16 @@ import pyhdf.SD as hdf
 import datetime as dt
 import numpy as np
 from shapely import geometry
+from shapely.ops import cascaded_union
 from ..geoutils import geoutils as gu
 
 
 class SwathTile:
 
-    def __init__(self, datatype, geo_file_path, data_file_path):
+    def __init__(self, datatype, geo_file_paths, data_file_paths):
         self.datatype = datatype
-        self.geo_file_path = geo_file_path
-        self.data_file_path = data_file_path
+        self.geo_file_paths = geo_file_paths
+        self.data_file_paths = data_file_paths
         self.timestamp = dt.datetime.now()
 
     def __calculate_bounds__(self, latitude_dataframe, longitude_dataframe):
@@ -31,6 +32,13 @@ class SwathTile:
 
         bounding_poly = geometry.Polygon(points)
         return bounding_poly
+
+    def merge(self, other):
+        self.geo_file_paths.extend(other.geo_file_paths)
+        self.data_file_paths.extend(other.geo_file_paths)
+        self.bounds = cascaded_union([self.bounds, other.bounds])
+
+
 
     def __get_edge__(self, length, ordinal, side, longitude_dataframe, latitude_dataframe):
         points = []

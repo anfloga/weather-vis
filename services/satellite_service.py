@@ -38,7 +38,7 @@ class SatelliteService(interface.implements(TopographyService)):
         for i in range(dir_length):
             geo_filename = os.fsdecode(geo_directory) + "/" + os.fsdecode(geo_list[i])
             data_filename = os.fsdecode(data_directory) + "/" + os.fsdecode(data_list[i])
-            tile = self.__get_tile__(geo_filename, data_filename)
+            tile = self.__get_tile__([geo_filename], [data_filename])
             self.add(tile)
 
     def add(self, swath_tile):
