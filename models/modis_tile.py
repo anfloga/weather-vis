@@ -22,7 +22,7 @@ class ModisTile(SwathTile):
         variable_data = pd.DataFrame(hdf.SD(self.data_file_paths[0], hdf.SDC.READ).select(self.datatype).get()).head(0)
 
         for path in self.data_file_paths:
-            variable data = pd.concat([variable_data, pd.DataFrame(hdf.SD(path, hdf.SDC.READ).select(self.datatype).get())])
+            variable_data = pd.concat([variable_data, pd.DataFrame(hdf.SD(path, hdf.SDC.READ).select(self.datatype).get())])
 
         return variable_data
 

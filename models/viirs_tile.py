@@ -15,9 +15,13 @@ class ViirsTile(SwathTile):
         self.path_string = path_string
         self.geo_path_string = 'VIIRS-CLD-AGG-GEO_All'
 
-        geo_data_file = hdf.File(geo_file_paths)
-        long_data = pd.DataFrame(geo_data_file['All_Data'][self.geo_path_string]['Longitude'][:])
-        lat_data = pd.DataFrame(geo_data_file['All_Data'][self.geo_path_string]['Latitude'][:])
+        long_data = pd.DataFrame(hdf.File(geo_file_paths[0])['All_Data'][self.geo_path_string]['Longitude'][:]).head(0)
+        lat_data = pd.DataFrame(hdf.File(geo_file_paths[0])['All_Data'][self.geo_path_string]['Latitude'][:]).head(0)
+
+        for path in geo_file_paths:
+            geo_data_file = hdf.File(path)
+            long_data = pd.concat([long_data, pd.DataFrame(geo_data_file['All_Data'][self.geo_path_string]['Longitude'][:])])
+            lat_data = pd.concat([lat_data, pd.DataFrame(geo_data_file['All_Data'][self.geo_path_string]['Latitude'][:])])
 
         self.bounds = self.__calculate_bounds__(lat_data, long_data)
 

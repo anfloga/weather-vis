@@ -37,8 +37,15 @@ class SwathTile:
         self.geo_file_paths.extend(other.geo_file_paths)
         self.data_file_paths.extend(other.geo_file_paths)
         self.bounds = cascaded_union([self.bounds, other.bounds])
+        self.plot()
 
-
+    def plot(self):
+        x,y = self.bounds.exterior.xy
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(x, y, color='#6699cc', alpha=0.7, linewidth=3, solid_capstyle='round', zorder=2)
+        ax.set_title('Polygon')
+        plt.show()
 
     def __get_edge__(self, length, ordinal, side, longitude_dataframe, latitude_dataframe):
         points = []
