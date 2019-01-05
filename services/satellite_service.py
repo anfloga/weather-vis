@@ -6,6 +6,7 @@ import numpy as np
 import pyproj as proj
 from shapely.geometry import mapping
 from shapely import geometry
+import matplotlib.pyplot as plt
 from matplotlib.tri.triangulation import Triangulation
 from .topography_service import TopographyService
 from ..models.swath_tile import SwathTile
@@ -47,10 +48,16 @@ class SatelliteService(interface.implements(TopographyService)):
         self.swath_tiles.append(swath_tile)
 
     def query(self, query):
-        for tile in self.swath_tiles:
+        track = self.swath_tiles[0]
 
-            if tile.bounds.contains(query):
-                return self.__get_frame__(tile, query)
+        if len(self.swath_tiles) > 1:
+            for i in range(1, len(self.swath_tiles)):
+                track = track.merge(self.swath_tiles[i])
+
+        print(track.bounds.contains(query.projected_shape))
+
+        if track.bounds.contains(query.projected_shape):
+            return self.__get_frame__(track, query.query_shape)
 
     def __get_frame__(self, tile, query_bounds):
         df = self.__to_grid__(tile, query_bounds)
@@ -62,21 +69,11 @@ class SatelliteService(interface.implements(TopographyService)):
         lat_dataframe = tile.__get_geo_dataframe__("Latitude")
         long_dataframe = tile.__get_geo_dataframe__("Longitude")
 
-        lat_stack = pd.DataFrame()
-        long_stack = pd.DataFrame()
-        type_stack = pd.DataFrame()
+        df = pd.concat([lat_dataframe, long_dataframe, variable_dataframe], axis=1, keys=['lat', 'long', self.datatype, 'timestamp'], ignore_index=True)
+        df.columns = ['lat', 'long', self.datatype, 'timestamp']
 
-        #stack the columns
-        for column in lat_dataframe:
-            lat_stack = pd.concat([lat_stack, lat_dataframe[column]])
-        for column in long_dataframe:
-            long_stack = pd.concat([long_stack, long_dataframe[column]])
-        for column in variable_dataframe:
-            type_stack = pd.concat([type_stack, variable_dataframe[column]])
-
-        df = pd.concat([lat_stack[lat_stack.columns[0]], long_stack[long_stack.columns[0]], type_stack[type_stack.columns[0]]], axis=1, keys=["lat", "long", self.datatype])
         bounds = query.bounds
-        #lat is LT upper lat and GT lower lat; long is GT west long and LT east long
+
         df = df.loc[(df["lat"] < bounds[3]) & (df["lat"] > bounds[1]) & (df["long"] > bounds[0]) & (df["long"] < bounds[2])]
         return df
 
@@ -145,7 +142,6 @@ class SatelliteService(interface.implements(TopographyService)):
         #result = result.drop(result[((result.az == 65535) | (result.bz == 65535) | (result.cz == 65535))].index)
         result = result.drop(result[((result.az == 0) | (result.bz == 0) | (result.cz == 0))].index)
 
-        print(result.shape)
         return result.to_json(orient="records")
 
 

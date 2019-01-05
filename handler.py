@@ -8,6 +8,7 @@ import pandas as pd
 
 import threading
 import json
+from .models.query import Query
 from .models.layer import Layer
 from .services.viirs_service import ViirsService
 from .services.modis_service import ModisService
@@ -38,7 +39,7 @@ def query():
     if len(features) > 1:
         return "only 1 feature allowed"
 
-    query = shape(features[0]['geometry'])
+    query = Query(request)
     top.layer_json = top_service.query(query)
     return "success"
 

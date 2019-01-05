@@ -3,8 +3,12 @@ import h5py as hdf
 import pyhdf.SD as hdf
 import datetime as dt
 import numpy as np
+import matplotlib.pyplot as plt
+import pyproj as proj
+from operator import itemgetter
 from shapely import geometry
 from shapely.ops import cascaded_union
+from shapely.ops import unary_union
 from ..geoutils import geoutils as gu
 
 
@@ -14,7 +18,11 @@ class SwathTile:
         self.datatype = datatype
         self.geo_file_paths = geo_file_paths
         self.data_file_paths = data_file_paths
-        self.timestamp = dt.datetime.now()
+
+        #TODO: Extract timestamp from time of data collection
+        self.timestamps = [dt.datetime.now()]
+        self.in_projection = proj.Proj(init='epsg:4326') # assuming you're using WGS84 geographic
+        self.out_projection = proj.Proj(init='epsg:3857')
 
     def __calculate_bounds__(self, latitude_dataframe, longitude_dataframe):
         shape = latitude_dataframe.shape
@@ -35,16 +43,14 @@ class SwathTile:
 
     def merge(self, other):
         self.geo_file_paths.extend(other.geo_file_paths)
-        self.data_file_paths.extend(other.geo_file_paths)
-        self.bounds = cascaded_union([self.bounds, other.bounds])
-        self.plot()
+        self.data_file_paths.extend(other.data_file_paths)
+        self.bounds = cascaded_union([self.bounds, other.bounds]).buffer(2).buffer(-2)
+        self.timestamps.extend(other.timestamps)
+        return self
 
     def plot(self):
         x,y = self.bounds.exterior.xy
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.plot(x, y, color='#6699cc', alpha=0.7, linewidth=3, solid_capstyle='round', zorder=2)
-        ax.set_title('Polygon')
+        plt.scatter(x, y)
         plt.show()
 
     def __get_edge__(self, length, ordinal, side, longitude_dataframe, latitude_dataframe):
@@ -61,7 +67,15 @@ class SwathTile:
             point = (lon, lat)
             points.append(point)
 
+        points = [self.__project__(point[0], point[1]) for point in points]
         return points
+
+    def __project__(self, x, y):
+        x2 = x
+        y2 = y
+        if x < 0:
+            x2 = x + 360
+        return (x2,y2)
 
     def __get_variable_dataframe__(self):
         raise NotImplementedError()
