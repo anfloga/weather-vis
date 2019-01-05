@@ -25,8 +25,7 @@ class ViirsTile(SwathTile):
 
         self.bounds = self.__calculate_bounds__(lat_data, long_data)
 
-    def __get_variable_dataframe__(self):
-        #variable_data = pd.DataFrame(hdf.File(self.data_file_paths[0])['All_Data'][self.path_string][self.datatype][:]).head(0)
+    def __get_variable_dataframe__(self, datetime = None):
         variable_data = pd.DataFrame()
 
         for i in range(len(self.timestamps)):
@@ -40,7 +39,6 @@ class ViirsTile(SwathTile):
         return variable_data
 
     def __get_geo_dataframe__(self, coord_type):
-        #coord_data = pd.DataFrame(hdf.File(self.geo_file_paths[0])['All_Data'][self.geo_path_string][coord_type][:]).head(0)
         coord_data = pd.DataFrame()
 
 
@@ -50,9 +48,5 @@ class ViirsTile(SwathTile):
             data = pd.DataFrame(data.stack().reset_index(drop=True))
             coord_data = pd.concat([coord_data, data])
 
-#
-#        for path in self.geo_file_paths:
-#            coord_data = pd.concat([coord_data, pd.DataFrame(hdf.File(path)['All_Data'][self.geo_path_string][coord_type][:])])
-#
         return coord_data
 
