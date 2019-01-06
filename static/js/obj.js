@@ -113,29 +113,21 @@ class BufferLayer extends Layer {
 
     async setShader() {
 
-        var texture = new THREE.TextureLoader().load("/static/cloud10.png");
-            texture.magFilter = THREE.LinearMipMapLinearFilter;
-            texture.minFilter = THREE.LinearMipMapLinearFilter;
+        var texture = new THREE.TextureLoader().load("/static/avface.jpg");
 
-            var fog = new THREE.Fog( 0x4584b4, - 100, 3000 );
+                      var material = new THREE.ShaderMaterial( {
+                        //uniforms:     uniforms,
+                        vertexShader:   document.getElementById( 'vertexshader' ).textContent,
+                        fragmentShader: document.getElementById( 'fragmentshader' ).textContent,
+                        transparent:  true
+                        //map             : texture
+    });
 
-            this.material = new THREE.ShaderMaterial( {
+        //material.uniforms.map.value = texture
+        //material.map = texture;
 
-                uniforms: {
+        this.material = material;
 
-                    "map": { type: "t", value: texture },
-                    "fogColor" : { type: "c", value: fog.color },
-                    "fogNear" : { type: "f", value: fog.near },
-                    "fogFar" : { type: "f", value: fog.far },
-
-                },
-                vertexShader: document.getElementById( 'vs' ).textContent,
-                fragmentShader: document.getElementById( 'fs' ).textContent,
-                depthWrite: false,
-                depthTest: false,
-                transparent: true
-
-            } );
     }
 
 //    async setMaterial() {
@@ -211,7 +203,8 @@ async function buildTestLayer() {
 
 async function buildBufferLayer(url, zheight) {
     var layer = new BufferLayer();
-    await layer.setMaterial();
+    //await layer.setMaterial();
+    await layer.setShader();
     var positions = [];
 	var normals = [];
     var colours = [];
@@ -282,8 +275,15 @@ async function buildBufferLayer(url, zheight) {
             uvs.push(uvArray);
         }
 
-        var alpha = ((vertex.az + vertex.bz + vertex.cz) / 3.0);
-        alphas.push(alpha);
+        //var alpha = ((vertex.az + vertex.bz + vertex.cz) / 3.0);
+        var alpha = 1.0;
+
+        //alert(vz);
+
+        alphas.push(redColour);
+        alphas.push(redColour);
+        alphas.push(redColour);
+        //alphas.push(0.0);
 
         //colour.setRGB( Math.random(), Math.random(), Math.random());
         colours.push( colour.r, colour.g, colour.b );
@@ -295,7 +295,7 @@ async function buildBufferLayer(url, zheight) {
     //layer.geometry.addAttribute( 'normal', new THREE.Float32BufferAttribute( normals, 3 ).onUpload( disposeArray ) );
     layer.geometry.addAttribute( 'color', new THREE.Float32BufferAttribute( colours, 3 ).onUpload( disposeArray ) );
     //layer.geometry.addAttribute( 'uv', new THREE.Float32BufferAttribute( uvs, 0 ).onUpload( disposeArray ) );
-    //layer.geometry.addAttribute( 'alpha', new THREE.Float32BufferAttribute( alphas, 1 ).onUpload( disposeArray ) );
+    layer.geometry.addAttribute( 'alpha', new THREE.Float32BufferAttribute( alphas, 1 ).onUpload( disposeArray ) );
     layer.geometry.computeBoundingSphere();
 
     //console.log(layer.geometry);
