@@ -92,21 +92,16 @@ class BufferLayer extends Layer {
         console.log(this.material);
     }
 
+
     async setTexture() {
-        //var texture = new THREE.TextureLoader().load("/static/modis_granule_rgb_color_enh.png");
+        var texture = new THREE.TextureLoader().load("/static/avface.jpeg");
 
-        //texture.minFilter = THREE.NearestFilter;
+        texture.minFilter = THREE.NearestFilter;
 
-        var texture = new THREE.TextureLoader().load("/static/square.png");
         this.material = new THREE.MeshBasicMaterial( { map: texture } );
         //this.material = new THREE.MeshPhongMaterial( { map: texture } );
         //this.material = new THREE.MeshNormalMaterial( { map: texture } );
 
-        //this.material = new THREE.MeshPhongMaterial( {
-		//	color: 0xaaaaaa, specular: 0xffffff, shininess: 250,
-		//	side: THREE.DoubleSide,
-	    //  map: texture
-        //} );
         console.log("material set");
         console.log(this.material);
     }
@@ -205,6 +200,7 @@ async function buildBufferLayer(url, zheight) {
     var layer = new BufferLayer();
     //await layer.setMaterial();
     await layer.setShader();
+    //await layer.setTexture();
     var positions = [];
 	var normals = [];
     var colours = [];
@@ -292,7 +288,7 @@ async function buildBufferLayer(url, zheight) {
     }
 
     layer.geometry.addAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ).onUpload( disposeArray ) );
-    //layer.geometry.addAttribute( 'normal', new THREE.Float32BufferAttribute( normals, 3 ).onUpload( disposeArray ) );
+    layer.geometry.addAttribute( 'normal', new THREE.Float32BufferAttribute( normals, 3 ).onUpload( disposeArray ) );
     layer.geometry.addAttribute( 'color', new THREE.Float32BufferAttribute( colours, 3 ).onUpload( disposeArray ) );
     //layer.geometry.addAttribute( 'uv', new THREE.Float32BufferAttribute( uvs, 0 ).onUpload( disposeArray ) );
     layer.geometry.addAttribute( 'alpha', new THREE.Float32BufferAttribute( alphas, 1 ).onUpload( disposeArray ) );
