@@ -97,7 +97,9 @@ class BufferLayer extends Layer {
 
         //texture.minFilter = THREE.NearestFilter;
 
-        var texture = new THREE.TextureLoader().load("/static/square.png");
+        var texture = new THREE.TextureLoader().load("/static/avface.jpeg");
+        texture.minFilter = THREE.NearestFilter;
+
         this.material = new THREE.MeshBasicMaterial( { map: texture } );
         //this.material = new THREE.MeshPhongMaterial( { map: texture } );
         //this.material = new THREE.MeshNormalMaterial( { map: texture } );
@@ -204,7 +206,7 @@ async function buildTestLayer() {
 async function buildBufferLayer(url, zheight) {
     var layer = new BufferLayer();
     //await layer.setMaterial();
-    await layer.setShader();
+    await layer.setTexture();
     var positions = [];
 	var normals = [];
     var colours = [];
@@ -292,10 +294,9 @@ async function buildBufferLayer(url, zheight) {
     }
 
     layer.geometry.addAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ).onUpload( disposeArray ) );
-    //layer.geometry.addAttribute( 'normal', new THREE.Float32BufferAttribute( normals, 3 ).onUpload( disposeArray ) );
+    layer.geometry.addAttribute( 'normal', new THREE.Float32BufferAttribute( normals, 3 ).onUpload( disposeArray ) );
     layer.geometry.addAttribute( 'color', new THREE.Float32BufferAttribute( colours, 3 ).onUpload( disposeArray ) );
-    //layer.geometry.addAttribute( 'uv', new THREE.Float32BufferAttribute( uvs, 0 ).onUpload( disposeArray ) );
-    layer.geometry.addAttribute( 'alpha', new THREE.Float32BufferAttribute( alphas, 1 ).onUpload( disposeArray ) );
+    layer.geometry.addAttribute( 'uv', new THREE.Float32BufferAttribute( uvs, 0 ).onUpload( disposeArray ) );
     layer.geometry.computeBoundingSphere();
 
     //console.log(layer.geometry);
