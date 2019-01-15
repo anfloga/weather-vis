@@ -140,7 +140,7 @@ class SatelliteService(interface.implements(TopographyService)):
 
         result = pd.concat([adf, bdf, cdf], axis=1)
         #result = result.drop(result[((result.az == 65535) | (result.bz == 65535) | (result.cz == 65535))].index)
-        result = result.drop(result[((result.az == 0) | (result.bz == 0) | (result.cz == 0))].index)
+        #result = result.drop(result[((result.az == 0) | (result.bz == 0) | (result.cz == 0))].index)
 
         return result.to_json(orient="records")
 

@@ -82,16 +82,12 @@ class BufferLayer extends Layer {
 			//side: THREE.DoubleSide, vertexColors: THREE.VertexColors
 		//} );
         this.material = new THREE.MeshBasicMaterial({
-            vertexColors: THREE.VertexColors,
-            transparent: false,
-            //alphaTest: 0.15,
-            side: THREE.DoubleSide
+            vertexColors: THREE.VertexColors
         });
 
         console.log("material set");
         console.log(this.material);
     }
-
 
     async setTexture() {
         var texture = new THREE.TextureLoader().load("/static/avface.jpeg");
@@ -106,9 +102,10 @@ class BufferLayer extends Layer {
         console.log(this.material);
     }
 
+
     async setShader() {
 
-        var texture = new THREE.TextureLoader().load("/static/avface.jpg");
+        //var texture = new THREE.TextureLoader().load("/static/avface.jpg");
 
                       var material = new THREE.ShaderMaterial( {
                         //uniforms:     uniforms,
@@ -196,20 +193,18 @@ async function buildTestLayer() {
 }
 
 
-async function buildBufferLayer(url, zheight) {
+async function buildBufferLayer(url) {
     var layer = new BufferLayer();
-    //await layer.setMaterial();
-    await layer.setShader();
-    //await layer.setTexture();
+    await layer.setTexture();
+    //await layer.setShader();
     var positions = [];
 	var normals = [];
     var colours = [];
     var uvs = [];
     var alphas = [];
+
     var colour = new THREE.Color();
 
-    //var scale = 0.01;
-    var scale = 1;
     var pA = new THREE.Vector3();
     var pB = new THREE.Vector3();
     var pC = new THREE.Vector3();
@@ -222,9 +217,10 @@ async function buildBufferLayer(url, zheight) {
 
     for (var key in vertexArray) {
         var vertex = vertexArray[key];
-        positions.push(vertex.ax, vertex.ay, (vertex.az * scale) + zheight);
-        positions.push(vertex.bx, vertex.by, (vertex.bz * scale) + zheight);
-        positions.push(vertex.cx, vertex.cy, (vertex.cz * scale) + zheight);
+
+        positions.push(vertex.ax, vertex.ay, vertex.az);
+        positions.push(vertex.bx, vertex.by, vertex.bz);
+        positions.push(vertex.cx, vertex.cy, vertex.cz);
 
         pA.set(vertex.ax, vertex.ay, vertex.az);
         pB.set(vertex.bx, vertex.by, vertex.bz);
@@ -248,17 +244,11 @@ async function buildBufferLayer(url, zheight) {
         var vy = ( Math.max(vertex.ay, vertex.by, vertex.cy) / 500 );
         var vz = ( Math.max(vertex.az, vertex.bz, vertex.cz) / 170 );
 
+        var redColour = (vertex.az + vertex.bz + vertex.cz) / 3.0;
+        redColour = redColour / 17000.0;
+        var greenColour = 1 - redColour
 
-        //red-to-blue heatmap logic
-        //var redColour = (vertex.az + vertex.bz + vertex.cz) / 3.0;
-        //redColour = redColour / 17000.0;
-        //var greenColour = 1 - redColour
-
-        var redColour = ((vertex.az + vertex.bz + vertex.cz) / 3.0) / 65535.0;
-        var blueColour = ((vertex.az + vertex.bz + vertex.cz) / 3.0) / 65535.0;
-        var greenColour = ((vertex.az + vertex.bz + vertex.cz) / 3.0) / 65535.0;
-
-        colour.setRGB( redColour, blueColour, greenColour );
+        colour.setRGB( redColour, 0, greenColour );
 
         var uvArray = new Float32Array([
             0.0, 0.0,
@@ -271,28 +261,29 @@ async function buildBufferLayer(url, zheight) {
             uvs.push(uvArray);
         }
 
-        //var alpha = ((vertex.az + vertex.bz + vertex.cz) / 3.0);
-        var alpha = 1.0;
-
-        //alert(vz);
-
-        alphas.push(redColour);
-        alphas.push(redColour);
-        alphas.push(redColour);
-        //alphas.push(0.0);
-
         //colour.setRGB( Math.random(), Math.random(), Math.random());
         colours.push( colour.r, colour.g, colour.b );
         colours.push( colour.r, colour.g, colour.b );
         colours.push( colour.r, colour.g, colour.b );
+        alphas.push(0.1);
+        alphas.push(0.1);
+        alphas.push(0.1);
     }
 
+
+    //ACTIVATE FOR TEXTURE
     layer.geometry.addAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ).onUpload( disposeArray ) );
     layer.geometry.addAttribute( 'normal', new THREE.Float32BufferAttribute( normals, 3 ).onUpload( disposeArray ) );
     layer.geometry.addAttribute( 'color', new THREE.Float32BufferAttribute( colours, 3 ).onUpload( disposeArray ) );
-    //layer.geometry.addAttribute( 'uv', new THREE.Float32BufferAttribute( uvs, 0 ).onUpload( disposeArray ) );
-    layer.geometry.addAttribute( 'alpha', new THREE.Float32BufferAttribute( alphas, 1 ).onUpload( disposeArray ) );
+    layer.geometry.addAttribute( 'uv', new THREE.Float32BufferAttribute( uvs, 0 ).onUpload( disposeArray ) );
     layer.geometry.computeBoundingSphere();
+
+    //ACTIVATE FOR SHADER
+//    layer.geometry.addAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ).onUpload( disposeArray ) );
+//    layer.geometry.addAttribute( 'normal', new THREE.Float32BufferAttribute( normals, 3 ).onUpload( disposeArray ) );
+//    layer.geometry.addAttribute( 'color', new THREE.Float32BufferAttribute( colours, 3 ).onUpload( disposeArray ) );
+//    layer.geometry.addAttribute( 'alpha', new THREE.Float32BufferAttribute( alphas, 1 ).onUpload( disposeArray ) );
+//    layer.geometry.computeBoundingSphere();
 
     //console.log(layer.geometry);
     //console.log(layer.material);
@@ -312,9 +303,7 @@ function animate() {
 }
 
 var scene = new THREE.Scene();
-
 scene.background = new THREE.Color(0xffffff);
-//scene.background = new THREE.Color(0xffffff);
 var light = new THREE.DirectionalLight( 0xffffff );
 light.position.set( 0, 1, 1 ).normalize();
 scene.add(light);
@@ -336,10 +325,6 @@ var renderer = new THREE.WebGLRenderer( { antialias: true } );
 renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
 
-//buildBufferLayer("http://127.0.0.1:5000/layer?name=base", -100000);
-//buildBufferLayer("http://127.0.0.1:5000/layer?name=top", 100000);
-//buildBufferLayer("http://127.0.0.1:5000/layer?name=base", 0);
 buildBufferLayer("http://127.0.0.1:5000/layer?name=top", 0);
-
-//buildTestLayer();
+buildTestLayer();
 animate();
