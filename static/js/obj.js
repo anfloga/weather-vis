@@ -82,7 +82,10 @@ class BufferLayer extends Layer {
 			//side: THREE.DoubleSide, vertexColors: THREE.VertexColors
 		//} );
         this.material = new THREE.MeshBasicMaterial({
-            vertexColors: THREE.VertexColors
+            vertexColors: THREE.VertexColors,
+            transparent: false,
+            //alphaTest: 0.15,
+            side: THREE.DoubleSide
         });
 
         console.log("material set");
@@ -195,7 +198,8 @@ async function buildTestLayer() {
 
 async function buildBufferLayer(url) {
     var layer = new BufferLayer();
-    await layer.setTexture();
+    //await layer.setTexture();
+    await layer.setMaterial();
     //await layer.setShader();
     var positions = [];
 	var normals = [];
@@ -244,11 +248,11 @@ async function buildBufferLayer(url) {
         var vy = ( Math.max(vertex.ay, vertex.by, vertex.cy) / 500 );
         var vz = ( Math.max(vertex.az, vertex.bz, vertex.cz) / 170 );
 
-        var redColour = (vertex.az + vertex.bz + vertex.cz) / 3.0;
-        redColour = redColour / 17000.0;
-        var greenColour = 1 - redColour
+        var redColour = ((vertex.az + vertex.bz + vertex.cz) / 3.0) / 65535.0;
+        var blueColour = ((vertex.az + vertex.bz + vertex.cz) / 3.0) / 65535.0;
+        var greenColour = ((vertex.az + vertex.bz + vertex.cz) / 3.0) / 65535.0;
 
-        colour.setRGB( redColour, 0, greenColour );
+        colour.setRGB( redColour, blueColour, greenColour );
 
         var uvArray = new Float32Array([
             0.0, 0.0,
