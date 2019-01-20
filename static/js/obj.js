@@ -125,6 +125,24 @@ class BufferLayer extends Layer {
 
     }
 
+    async setTexture2() {
+        var texture = new THREE.TextureLoader().load("/static/avface.jpeg");
+
+        //texture.minFilter = THREE.NearestFilter;
+        texture.mapping = THREE.EquirectangularReflectionMapping;
+        texture.magFilter = THREE.LinearFilter;
+        texture.minFilter = THREE.LinearMipMapLinearFilter;
+        texture.encoding = THREE.sRGBEncoding;
+
+
+        console.log(texture);
+
+        this.material = new THREE.MeshBasicMaterial( { map: texture } );
+
+        console.log("material set");
+        console.log(this.material);
+    }
+
 //    async setMaterial() {
         //var textureLoader = new THREE.TextureLoader();
 //        var image = await fetch("/static/modis_granule_rgb_color_enh.png");
@@ -199,8 +217,9 @@ async function buildTestLayer() {
 async function buildBufferLayer(url) {
     var layer = new BufferLayer();
     //await layer.setTexture();
-    await layer.setMaterial();
+    //await layer.setMaterial();
     //await layer.setShader();
+    await layer.setTexture2();
     var positions = [];
 	var normals = [];
     var colours = [];
@@ -260,10 +279,9 @@ async function buildBufferLayer(url) {
             1.0, 1.0,
             0.0, 1.0,
         ])
-
-        for (var i = 0, len = 9; i < len; i++) {
-            uvs.push(uvArray);
-        }
+       // for (var i = 0, len = 9; i < len; i++) {
+       //     uvs.push(uvArray);
+       // }
 
         //colour.setRGB( Math.random(), Math.random(), Math.random());
         colours.push( colour.r, colour.g, colour.b );
@@ -272,14 +290,40 @@ async function buildBufferLayer(url) {
         alphas.push(0.1);
         alphas.push(0.1);
         alphas.push(0.1);
+
+        uvs.push( (vertex.ax + 1000) / 2000 )
+        uvs.push( 1 - (( vertex.ay + 1000)/ 2000) );
+        uvs.push( (vertex.bx + 1000) / 2000 )
+        uvs.push( 1 - (( vertex.by + 1000)/ 2000) );
+        uvs.push( (vertex.cx + 1000) / 2000 )
+        uvs.push( 1 - (( vertex.cy + 1000)/ 2000) );
+
+
+        for (var i = 0; i < 9; i++) {
+        //uvs.push(i / 8);
+            //uvs.push(vertex.ax / 242);
+
+        //uvs.push(0.1);
+        }
     }
 
+    var gridX = Math.floor( 200 ) || 1;
+    var gridY = Math.floor( 200 ) || 1;
+//
+//    for (var i = 0, len = gridY; i < len; i++) {
+//
+//        for (var j = 0, len = gridX; j < len; j++) {
+//
+//            uvs.push( i / gridX );
+//            uvs.push( j / gridY );
+//        }
+//    }
 
     //ACTIVATE FOR TEXTURE
     layer.geometry.addAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ).onUpload( disposeArray ) );
     layer.geometry.addAttribute( 'normal', new THREE.Float32BufferAttribute( normals, 3 ).onUpload( disposeArray ) );
     layer.geometry.addAttribute( 'color', new THREE.Float32BufferAttribute( colours, 3 ).onUpload( disposeArray ) );
-    layer.geometry.addAttribute( 'uv', new THREE.Float32BufferAttribute( uvs, 0 ).onUpload( disposeArray ) );
+    layer.geometry.addAttribute( 'uv', new THREE.Float32BufferAttribute( uvs, 2 ).onUpload( disposeArray ) );
     layer.geometry.computeBoundingSphere();
 
     //ACTIVATE FOR SHADER
