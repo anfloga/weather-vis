@@ -16,9 +16,13 @@ from shapely.geometry import shape, Point, mapping, Polygon
 
 
 base_data_directory = os.fsencode("/media/joe/DATA/weather_data/viirs/20180916/test/cbh")
-geo_directory = os.fsencode("/media/joe/DATA/weather_data/viirs/20180916/test/geo")
-top_data_directory = os.fsencode("/media/joe/DATA/weather_data/viirs/20180916/test/cth")
+#geo_directory = os.fsencode("/media/joe/DATA/weather_data/viirs/20180916/test/geo")
+#top_data_directory = os.fsencode("/media/joe/DATA/weather_data/viirs/20180916/test/cth")
 modis_directory = os.fsencode("/media/joe/DATA/weather_data/raw/201810319")
+#geo_directory = os.fsencode("/media/joe/DATA/weather_data/viirs/20181201/test/geo")
+#top_data_directory = os.fsencode("/media/joe/DATA/weather_data/viirs/20181201/test/cth")
+geo_directory = os.fsencode("/media/joe/DATA/weather_data/viirs/20181201/geo")
+top_data_directory = os.fsencode("/media/joe/DATA/weather_data/viirs/20181201/cth")
 
 #base_service = ViirsService('base', geo_directory, base_data_directory)
 top_service = ViirsService('AverageCloudTopHeight', 'VIIRS-CTH-EDR_All', z_scale = 200000, geo_directory = geo_directory, data_directory = top_data_directory)

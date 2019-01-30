@@ -40,6 +40,7 @@ class SatelliteService(interface.implements(TopographyService)):
             geo_filename = os.fsdecode(geo_directory) + "/" + os.fsdecode(geo_list[i])
             data_filename = os.fsdecode(data_directory) + "/" + os.fsdecode(data_list[i])
             tile = self.__get_tile__([geo_filename], [data_filename])
+            #print(f'length: {len(tile.data_file_paths)}')
             self.add(tile)
 
     def add(self, swath_tile):
@@ -48,21 +49,33 @@ class SatelliteService(interface.implements(TopographyService)):
         self.swath_tiles.append(swath_tile)
 
     def query(self, query):
-        track = self.swath_tiles[0]
+        frames = []
 
-        if len(self.swath_tiles) > 1:
-            for i in range(1, len(self.swath_tiles)):
-                track = track.merge(self.swath_tiles[i])
+        for tile in self.swath_tiles:
+#            print(tile.bounds.contains(query.projected_shape))
+#
+#            if tile.bounds.contains(query.projected_shape):
+#                return self.__get_frame__(tile, query.query_shape)
+#
+            frame = self.__get_frame__(tile, query.query_shape)
+            if frame is not None:
+                print(*tile.data_file_paths)
+                print(frame.head())
+                frames.append(frame)
 
-        print(track.bounds.contains(query.projected_shape))
-
-        if track.bounds.contains(query.projected_shape):
-            return self.__get_frame__(track, query.query_shape)
-
+        return self.__get_json__(frames[-1])
+#        if len(self.swath_tiles) > 1:
+#            for i in range(1, len(self.swath_tiles)):
+#                track = track.merge(self.swath_tiles[i])
+#
     def __get_frame__(self, tile, query_bounds):
         df = self.__to_grid__(tile, query_bounds)
+        if len(df) == 0:
+            return None
+
         df = self.__to_local__(df, query_bounds, self.z_scale)
-        return self.__get_json__(df)
+        return df
+        #return self.__get_json__(df)
 
     def __to_grid__(self, tile, query):
         variable_dataframe = tile.__get_variable_dataframe__()
@@ -75,6 +88,7 @@ class SatelliteService(interface.implements(TopographyService)):
         bounds = query.bounds
 
         df = df.loc[(df["lat"] < bounds[3]) & (df["lat"] > bounds[1]) & (df["long"] > bounds[0]) & (df["long"] < bounds[2])]
+
         return df
 
     def __scale_z__(self, df, scale):
@@ -102,6 +116,11 @@ class SatelliteService(interface.implements(TopographyService)):
 
         df["x"] = df["x"].apply(lambda x: (x_origin - x) * 0.001)
         df["y"] = df["y"].apply(lambda y: (y_origin - y) * 0.001)
+
+        print(df["x"].min())
+        print(df["x"].max())
+        print(df["y"].min())
+        print(df["y"].max())
         return df
 
     def __get_json__(self, df):

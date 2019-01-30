@@ -24,17 +24,17 @@ class SwathTile:
         self.in_projection = proj.Proj(init='epsg:4326') # assuming you're using WGS84 geographic
         self.out_projection = proj.Proj(init='epsg:3857')
 
-    def __calculate_bounds__(self, latitude_dataframe, longitude_dataframe):
+    def __calculate_bounds__(self, project, latitude_dataframe, longitude_dataframe):
         shape = latitude_dataframe.shape
 
         x_length = shape[0]
         y_length = shape[1]
 
         points = []
-        points.extend(self.__get_edge__(y_length, 0, True, longitude_dataframe, latitude_dataframe))
-        points.extend(self.__get_edge__(y_length, -1, True, longitude_dataframe,latitude_dataframe))
-        points.extend(self.__get_edge__(x_length, 0, False, longitude_dataframe, latitude_dataframe))
-        points.extend(self.__get_edge__(x_length, -1, False, longitude_dataframe, latitude_dataframe))
+        points.extend(self.__get_edge__(y_length, 0, True, project, longitude_dataframe, latitude_dataframe))
+        points.extend(self.__get_edge__(y_length, -1, True, project, longitude_dataframe,latitude_dataframe))
+        points.extend(self.__get_edge__(x_length, 0, False, project, longitude_dataframe, latitude_dataframe))
+        points.extend(self.__get_edge__(x_length, -1, False, project, longitude_dataframe, latitude_dataframe))
 
         points = gu.sort_coordinates(points)
 
@@ -45,6 +45,7 @@ class SwathTile:
         self.geo_file_paths.extend(other.geo_file_paths)
         self.data_file_paths.extend(other.data_file_paths)
         self.bounds = cascaded_union([self.bounds, other.bounds]).buffer(2).buffer(-2)
+        self.real_bounds = cascaded_union([self.real_bounds, other.real_bounds]).buffer(2).buffer(-2)
         self.timestamps.extend(other.timestamps)
         return self
 
@@ -53,7 +54,7 @@ class SwathTile:
         plt.scatter(x, y)
         plt.show()
 
-    def __get_edge__(self, length, ordinal, side, longitude_dataframe, latitude_dataframe):
+    def __get_edge__(self, length, ordinal, side, project, longitude_dataframe, latitude_dataframe):
         points = []
 
         for i in range(0, length - 1):

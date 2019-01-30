@@ -23,7 +23,8 @@ class ViirsTile(SwathTile):
             long_data = pd.concat([long_data, pd.DataFrame(geo_data_file['All_Data'][self.geo_path_string]['Longitude'][:])])
             lat_data = pd.concat([lat_data, pd.DataFrame(geo_data_file['All_Data'][self.geo_path_string]['Latitude'][:])])
 
-        self.bounds = self.__calculate_bounds__(lat_data, long_data)
+        self.bounds = self.__calculate_bounds__(True, lat_data, long_data)
+        self.real_bounds = self.__calculate_bounds__(False, lat_data, long_data)
 
     def __get_variable_dataframe__(self, datetime = None):
         variable_data = pd.DataFrame()

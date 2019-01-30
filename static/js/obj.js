@@ -46,7 +46,8 @@ class PlaneLayer extends Layer {
     constructor(x, y) {
         super();
         this.material = new THREE.MeshPhongMaterial({color: 0xdddddd, wireframe: true});
-        this.geometry = new THREE.PlaneGeometry(100, 100, 400, 400);
+        this.geometry = new THREE.PlaneGeometry(1373, 1419);
+        this.geometry.translate(284, -312, 0);
     }
 
     setSegmentHeight(point) {
@@ -58,7 +59,8 @@ class PlaneLayer extends Layer {
 
     async setMaterial() {
         //var texture = new THREE.TextureLoader().load("/static/modis_granule_rgb_color_enh.png");
-        var texture = new THREE.TextureLoader().load("/static/modis_granule_rgb_color_enh.png");
+        //var texture = new THREE.TextureLoader().load("/static/modis_granule_rgb_color_enh.png");
+        var texture = new THREE.TextureLoader().load("static/gbr.png");
         //this.material = new THREE.MeshBasicMaterial( { map: texture } );
         this.material = new THREE.MeshBasicMaterial( { map: texture } );
     }
@@ -93,7 +95,7 @@ class BufferLayer extends Layer {
     }
 
     async setTexture() {
-        var texture = new THREE.TextureLoader().load("/static/avface.jpeg");
+        var texture = new THREE.TextureLoader().load("/static/sliced.png");
 
         texture.minFilter = THREE.NearestFilter;
 
@@ -126,7 +128,7 @@ class BufferLayer extends Layer {
     }
 
     async setTexture2() {
-        var texture = new THREE.TextureLoader().load("/static/avface.jpeg");
+        var texture = new THREE.TextureLoader().load("/static/cropped.png");
 
         //texture.minFilter = THREE.NearestFilter;
         texture.mapping = THREE.EquirectangularReflectionMapping;
@@ -164,6 +166,7 @@ function getCamera() {
     camera.position.z = 100;
     var controls = new THREE.OrbitControls(camera);
 //    controls.target.set(100, 0, 100);
+    controls.screenSpacePanning = true;
     return camera;
 }
 
@@ -218,8 +221,8 @@ async function buildBufferLayer(url) {
     var layer = new BufferLayer();
     //await layer.setTexture();
     //await layer.setMaterial();
-    //await layer.setShader();
-    await layer.setTexture2();
+    await layer.setShader();
+    //await layer.setTexture2();
     var positions = [];
 	var normals = [];
     var colours = [];
@@ -273,67 +276,43 @@ async function buildBufferLayer(url) {
 
         colour.setRGB( redColour, blueColour, greenColour );
 
-        var uvArray = new Float32Array([
-            0.0, 0.0,
-            1.0, 0.0,
-            1.0, 1.0,
-            0.0, 1.0,
-        ])
-       // for (var i = 0, len = 9; i < len; i++) {
-       //     uvs.push(uvArray);
-       // }
-
-        //colour.setRGB( Math.random(), Math.random(), Math.random());
         colours.push( colour.r, colour.g, colour.b );
         colours.push( colour.r, colour.g, colour.b );
         colours.push( colour.r, colour.g, colour.b );
-        alphas.push(0.1);
-        alphas.push(0.1);
-        alphas.push(0.1);
 
-        uvs.push( (vertex.ax + 1000) / 2000 )
-        uvs.push( 1 - (( vertex.ay + 1000)/ 2000) );
-        uvs.push( (vertex.bx + 1000) / 2000 )
-        uvs.push( 1 - (( vertex.by + 1000)/ 2000) );
-        uvs.push( (vertex.cx + 1000) / 2000 )
-        uvs.push( 1 - (( vertex.cy + 1000)/ 2000) );
+        alpha = colour.r * 0.5;
 
+        alphas.push(alpha);
+        alphas.push(alpha);
+        alphas.push(alpha);
 
-        for (var i = 0; i < 9; i++) {
-        //uvs.push(i / 8);
-            //uvs.push(vertex.ax / 242);
+        //alphas.push(0.35);
+        //alphas.push(0.35);
+        //alphas.push(0.35);
 
-        //uvs.push(0.1);
-        }
+        uvs.push( 1 - (vertex.ax + 1000) / 2000 )
+        uvs.push( (( vertex.ay + 1000)/ 2000) );
+        uvs.push( 1 - (vertex.bx + 1000) / 2000 )
+        uvs.push( (( vertex.by + 1000)/ 2000) );
+        uvs.push( 1 - (vertex.cx + 1000) / 2000 )
+        uvs.push( (( vertex.cy + 1000)/ 2000) );
     }
 
-    var gridX = Math.floor( 200 ) || 1;
-    var gridY = Math.floor( 200 ) || 1;
-//
-//    for (var i = 0, len = gridY; i < len; i++) {
-//
-//        for (var j = 0, len = gridX; j < len; j++) {
-//
-//            uvs.push( i / gridX );
-//            uvs.push( j / gridY );
-//        }
-//    }
-
     //ACTIVATE FOR TEXTURE
-    layer.geometry.addAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ).onUpload( disposeArray ) );
-    layer.geometry.addAttribute( 'normal', new THREE.Float32BufferAttribute( normals, 3 ).onUpload( disposeArray ) );
-    layer.geometry.addAttribute( 'color', new THREE.Float32BufferAttribute( colours, 3 ).onUpload( disposeArray ) );
-    layer.geometry.addAttribute( 'uv', new THREE.Float32BufferAttribute( uvs, 2 ).onUpload( disposeArray ) );
-    layer.geometry.computeBoundingSphere();
-
-    //ACTIVATE FOR SHADER
 //    layer.geometry.addAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ).onUpload( disposeArray ) );
 //    layer.geometry.addAttribute( 'normal', new THREE.Float32BufferAttribute( normals, 3 ).onUpload( disposeArray ) );
 //    layer.geometry.addAttribute( 'color', new THREE.Float32BufferAttribute( colours, 3 ).onUpload( disposeArray ) );
-//    layer.geometry.addAttribute( 'alpha', new THREE.Float32BufferAttribute( alphas, 1 ).onUpload( disposeArray ) );
+//    layer.geometry.addAttribute( 'uv', new THREE.Float32BufferAttribute( uvs, 2 ).onUpload( disposeArray ) );
 //    layer.geometry.computeBoundingSphere();
+//
+    //ACTIVATE FOR SHADER
+    layer.geometry.addAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ).onUpload( disposeArray ) );
+    layer.geometry.addAttribute( 'normal', new THREE.Float32BufferAttribute( normals, 3 ).onUpload( disposeArray ) );
+    layer.geometry.addAttribute( 'color', new THREE.Float32BufferAttribute( colours, 3 ).onUpload( disposeArray ) );
+    layer.geometry.addAttribute( 'alpha', new THREE.Float32BufferAttribute( alphas, 1 ).onUpload( disposeArray ) );
+    layer.geometry.computeBoundingSphere();
 
-    //console.log(layer.geometry);
+  //console.log(layer.geometry);
     //console.log(layer.material);
 
     layer.addToScene(scene);
